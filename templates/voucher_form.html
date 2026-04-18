@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}New {{ voucher_type_label }}{% endblock %}
+{% block page_title %}New {{ voucher_type_label }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="mb-8 animate-fade-in text-center sm:text-left">
+        <nav class="flex mb-4 justify-center sm:justify-start" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <li><a href="{% url active_page|add:'_list' %}" class="hover:text-brand-600 transition-colors">{{ active_page }}</a></li>
+                <li><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></li>
+                <li class="text-gray-900">New entry</li>
+            </ol>
+        </nav>
+        <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Record {{ voucher_type_label }}</h2>
+        <p class="mt-2 text-sm text-gray-500 max-w-2xl">Ensure total debits equal total credits. All entries are recorded in {{ company.name }} ledger.</p>
+    </div>
+
+    <!-- ═══════════ EMPTY MASTER ALERT ═══════════ -->
+    {% if ledger_count == 0 %}
+    <div class="mb-8 p-6 bg-amber-50 rounded-3xl border border-amber-100 flex flex-col sm:flex-row items-center justify-between gap-6 animate-fade-in">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-amber-900 uppercase tracking-tight">Masters Empty</h4>
+                <p class="text-xs text-amber-700">You haven't created any Ledgers yet. You need at least two accounts to record a transaction.</p>
+            </div>
+        </div>
+        <a href="{% url 'ledger_create' %}" class="px-6 py-2 bg-amber-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-200 hover:bg-amber-700 transition-all uppercase tracking-widest">
+            Create Ledger First
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- ═══════════ FORM CARD ═══════════ -->
+    <form method="POST" id="voucher-form" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- HEADER SECTION -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-6 sm:p-8 animate-fade-in" style="animation-delay: 0.05s;">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="sm:col-span-1">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Voucher Date</label>
+                    {{ header_form.date }}
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Narration / Comments</label>
+                    {{ header_form.narration }}
+                </div>
+            </div>
+        </div>
+
+        <!-- ENTRIES SECTION -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="px-6 py-4 bg-gray-50/50 border-b border-gray-50 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Accounting Entries</h3>
+                <button type="button" id="add-row" class="text-[10px] font-bold text-brand-600 hover:text-brand-700 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Add Line Item
+                </button>
+            </div>
+
+            <div class="p-6 sm:p-8 space-y-4">
+                {{ formset.management_form }}
+                
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-[10px] uppercase font-bold tracking-widest text-gray-400 border-b border-gray-50">
+                            <th class="pb-3 pr-4">Ledger Account</th>
+                            <th class="pb-3 px-4">Item</th>
+                            <th class="pb-3 px-2 w-20">Qty</th>
+                            <th class="pb-3 px-2 w-28">Rate</th>
+                            <th class="pb-3 px-4 w-32">Type</th>
+                            <th class="pb-3 pl-4 text-right w-40">Amount (INR)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entries-body" class="divide-y divide-gray-50">
+                        {% for form in formset %}
+                        <tr class="group voucher-row">
+                            <td class="py-4 pr-4 align-top min-w-[180px]">
+                                {{ form.ledger }}
+                                {{ form.id }}
+                                {% if form.ledger.errors %}
+                                    <p class="mt-1 text-[10px] text-red-500 font-medium">{{ form.ledger.errors.0 }}</p>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-4 align-top min-w-[180px]">
+                                {{ form.stock_item }}
+                            </td>
+                            <td class="py-4 px-2 align-top">
+                                {{ form.quantity }}
+                            </td>
+                            <td class="py-4 px-2 align-top">
+                                {{ form.rate }}
+                            </td>
+                            <td class="py-4 px-4 align-top">
+                                {{ form.entry_type }}
+                            </td>
+                            <td class="py-4 pl-4 align-top">
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400 text-[10px]">₹</span>
+                                    </div>
+                                    {{ form.amount }}
+                                </div>
+                                {% if form.amount.errors %}
+                                    <p class="mt-1 text-[10px] text-red-500 font-medium text-right">{{ form.amount.errors.0 }}</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Global Errors -->
+            {% if formset.non_form_errors %}
+            <div class="mx-8 mb-8 p-4 bg-red-50 rounded-2xl border border-red-100">
+                <div class="flex items-center gap-3 text-red-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <span class="text-sm font-bold tracking-tight">{{ formset.non_form_errors.0 }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Form Actions -->
+            <div class="px-8 py-6 bg-gray-50/30 border-t border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-xs text-gray-400 italic">
+                    Hint: Ensure your Debits and Credits match exactly.
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="{% url active_page|add:'_list' %}" class="text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors">
+                        Discard
+                    </a>
+                    <button type="submit" {% if ledger_count == 0 %}disabled{% endif %} class="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 rounded-2xl text-sm font-bold text-white shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Post Voucher
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Dynamic Row & Calculation Script -->
+<script>
+    function setupRowCalculations(row) {
+        const qtyInput = row.querySelector('input[name*="-quantity"]');
+        const rateInput = row.querySelector('input[name*="-rate"]');
+        const amountInput = row.querySelector('input[name*="-amount"]');
+
+        const calculate = () => {
+            const qty = parseFloat(qtyInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            if (qty > 0 && rate > 0) {
+                amountInput.value = (qty * rate).toFixed(2);
+            }
+        };
+
+        qtyInput?.addEventListener('input', calculate);
+        rateInput?.addEventListener('input', calculate);
+    }
+
+    // Initialize existing rows
+    document.querySelectorAll('.voucher-row').forEach(setupRowCalculations);
+
+    document.getElementById('add-row')?.addEventListener('click', function() {
+        const body = document.getElementById('entries-body');
+        const rows = body.getElementsByClassName('voucher-row');
+        const totalForms = document.getElementById('id_entries-TOTAL_FORMS');
+        const nextIdx = parseInt(totalForms.value);
+
+        // Clone the first row as template
+        const newRow = rows[0].cloneNode(true);
+        
+        // Update IDs and Names
+        newRow.innerHTML = newRow.innerHTML.replace(/-0-/g, `-${nextIdx}-`);
+        
+        // Clear values
+        const inputs = newRow.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (input.type !== 'hidden') input.value = '';
+            if (input.type === 'checkbox') input.checked = false;
+        });
+
+        body.appendChild(newRow);
+        setupRowCalculations(newRow);
+        totalForms.value = nextIdx + 1;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Items{% endblock %}
+{% block page_title %}Inventory Masters{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8">
+    
+    <!-- Header Section -->
+    <div class="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in">
+        <div>
+            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Stock Items Overview</h2>
+            <p class="mt-2 text-sm text-gray-500">Manage all your products, units, and track current stock balances for {{ company.name }}.</p>
+        </div>
+        <div class="shrink-0 flex gap-3">
+            <a href="{% url 'inventory_create' %}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600/90 hover:bg-indigo-700 text-white text-sm font-bold rounded-2xl shadow-xl shadow-indigo-200/50 transition-all hover:-translate-y-0.5 backdrop-blur">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                New Stock Item
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats summary (optional nice touch) -->
+    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40 relative overflow-hidden group">
+            <div class="absolute -right-6 -top-6 w-24 h-24 bg-brand-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
+            <div class="relative z-10">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total Items</p>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ items.paginator.count }}</h3>
+                    <span class="text-sm font-bold text-brand-600">Products</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40 overflow-hidden animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50/50 text-[10px] uppercase font-bold tracking-widest text-gray-400 border-b border-gray-100">
+                        <th class="px-6 py-4 rounded-tl-3xl">Item Name</th>
+                        <th class="px-6 py-4">Base Unit</th>
+                        <th class="px-6 py-4 text-right">Opening Stock</th>
+                        <th class="px-6 py-4 text-right rounded-tr-3xl">Current Stock</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 text-sm font-medium">
+                    {% for item in items %}
+                    <tr class="hover:bg-gray-50/50 transition-colors group">
+                        <td class="px-6 py-4">
+                            <span class="text-gray-900 font-bold ml-1">{{ item.name }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-500">
+                            {{ item.unit_of_measure }}
+                        </td>
+                        <td class="px-6 py-4 text-right text-gray-500">
+                            {{ item.opening_stock_qty|floatformat:"2" }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-bold {% if item.current_quantity > 0 %}text-emerald-600{% elif item.current_quantity < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
+                            {{ item.current_quantity|floatformat:"2" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-16 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4">
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-gray-900 mb-1">No stock items found</h3>
+                            <p class="text-xs text-gray-500">Get started by creating your first product or inventory item.</p>
+                            <a href="{% url 'inventory_create' %}" class="mt-4 inline-flex items-center text-xs font-bold text-brand-600 hover:text-brand-700">
+                                Create Stock Item <span aria-hidden="true" class="ml-1">&rarr;</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination Component -->
+        {% if items.has_other_pages %}
+        <div class="px-6 py-4 bg-gray-50/30 border-t border-gray-50 flex items-center justify-between">
+            <span class="text-xs font-semibold text-gray-500 tracking-tight">
+                Showing {{ items.start_index }} to {{ items.end_index }} of {{ items.paginator.count }} items
+            </span>
+            <div class="flex gap-2">
+                {% if items.has_previous %}
+                <a href="?page={{ items.previous_page_number }}" class="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">Prev</a>
+                {% endif %}
+                {% if items.has_next %}
+                <a href="?page={{ items.next_page_number }}" class="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

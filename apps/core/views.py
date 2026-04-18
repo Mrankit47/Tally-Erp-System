@@ -7,6 +7,7 @@ Provides the main dashboard and sync log pages using Django templates.
 import json
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from .permissions import role_required
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db.models import Sum, Q
@@ -147,6 +148,7 @@ def sync_logs_view(request):
 
 
 @login_required
+@role_required(['Admin', 'Accountant'])
 @require_POST
 def trigger_sync_view(request):
     """
@@ -174,6 +176,7 @@ def trigger_sync_view(request):
 
 
 @login_required
+@role_required(['Admin', 'Accountant'])
 @require_POST
 def retry_sync_log_view(request, log_id):
     """

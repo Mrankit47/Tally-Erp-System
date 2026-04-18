@@ -1,49 +1,42 @@
 """
-Custom DRF permission classes.
-
-These permissions use Django's Group system for role-based access control.
-Users are assigned to groups (e.g., "Admin", "Accountant") via the service layer.
+RBAC Role definitions and Permissions.
 """
+from django.contrib.auth.decorators import user_passes_test
+from django.core.exceptions import PermissionDenied
 
+def in_groups(user, roles):
+    """
+    Evaluates if a user belongs to any of the requested roles.
+    Superusers automatically bypass Role-Based Access Control logic.
+    """
+    if user.is_superuser:
+        return True
+    return user.groups.filter(name__in=roles).exists()
+
+def role_required(roles):
+    """
+    Decorator for views that checks if the user belongs to the specified groups.
+    If not, raises an immediate 403 Permission Denied.
+    Usage: @role_required(['Admin', 'Accountant'])
+    """
+    def check_role(user):
+        if not user.is_authenticated:
+            return False
+        if in_groups(user, roles):
+            return True
+        raise PermissionDenied("You do not have the required clearance to access this financial resource.")
+        
+    return user_passes_test(check_role)
+
+# =============================================================================
+# REST FRAMEWORK PERMISSIONS
+# =============================================================================
 from rest_framework.permissions import BasePermission
-
 
 class IsAdmin(BasePermission):
     """
-    Allow access only to users in the 'Admin' group.
-
-    Usage in a ViewSet:
-        permission_classes = [IsAuthenticated, IsAdmin]
+    DRF permission class that only allows staff users (Superusers or Admins).
     """
-
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        return request.user.groups.filter(name='Admin').exists()
+        return request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
 
-
-class IsAccountant(BasePermission):
-    """
-    Allow access only to users in the 'Accountant' group.
-
-    Usage in a ViewSet:
-        permission_classes = [IsAuthenticated, IsAccountant]
-    """
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        return request.user.groups.filter(name='Accountant').exists()
-
-
-class IsAdminOrAccountant(BasePermission):
-    """
-    Allow access to users in either the 'Admin' or 'Accountant' group.
-
-    Useful for endpoints that both roles can access, such as read-only reports.
-    """
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        return request.user.groups.filter(name__in=['Admin', 'Accountant']).exists()

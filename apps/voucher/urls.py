@@ -1,5 +1,13 @@
-"""URL routing for the voucher app."""
-
 from django.urls import path
+from . import views
 
-urlpatterns = []
+urlpatterns = [
+    path('sales/', views.voucher_list_view, {'voucher_type': 'sales'}, name='sales_list'),
+    path('sales/new/', views.voucher_create_view, {'voucher_type': 'sales'}, name='sales_create'),
+    
+    path('payments/', views.voucher_list_view, {'voucher_type': 'payments'}, name='payments_list'),
+    path('payments/new/', views.voucher_create_view, {'voucher_type': 'payments'}, name='payments_create'),
+    
+    path('receipts/', views.voucher_list_view, {'voucher_type': 'receipts'}, name='receipts_list'),
+    path('receipts/new/', views.voucher_create_view, {'voucher_type': 'receipts'}, name='receipts_create'),
+]

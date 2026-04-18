@@ -1,50 +1,50 @@
-# Reports & Analytics Module (Ultra-Professional Build)
+# Production Security & PostgreSQL Implementation Plan
 
-This plan outlines the architecture for the enhanced, demo-ready reporting suite including Trial Balance, Profit & Loss statements, visual analytics, CSV exports, and performance optimization.
+This architecture plan upgrades the current Django infrastructure to production-level standards covering Database Integrity, Environmental Security, RBAC (Role-Based Access Control), and specialized logging.
 
 ## Proposed Changes
 
-### `reports` Services (`apps/reports/services.py`)
-- `get_ledger_category(ledger)`: Recursive categorization into 'Assets', 'Liabilities', 'Income', 'Expenses' logic.
-- `generate_trial_balance(company)`: 
-    - Compute balances intelligently (Debit vs Credit splits).
-    - Track `total_debit` and `total_credit`.
-    - Provide `difference` validation.
-- `generate_profit_and_loss(company)`:
-    - Track `total_income`, `total_expenses`, and `net_profit`.
-- `get_top_expenses(company, limit=5)`:
-    - Subquery aggregating total `DEBIT` entries specifically for ledgers identified as Expenses.
+### Part 1: PostgreSQL Integration & Environment
+#### [NEW] `/.env.example`
+- Define the standard template for `.env` secrets:
+  - `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`
+  - Database credentials (`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`)
+  - Tally connection URIs.
 
-### URL Routing & Django Views (`apps/reports/urls.py` & `apps/reports/views.py`)
-- **Web Views**:
-    - `trial_balance_view`: Assemble TB data. Add empty state context.
-    - `profit_loss_view`: Assemble P&L data + Top 5 expenses + Chart.js datasets filtered to the last 6-12 months.
-- **CSV Export Endpoints**:
-    - `export_trial_balance_csv` & `export_profit_loss_csv`: Generates the file. **Includes a top metadata header** (`Generated on: [date]`, `Company: [name]`) before injecting data headers.
+#### Database Migration Strategy (Documented inside `.env.example`)
+Since `psycopg2-binary` is already running natively in your Python virtual environment, we will provide the exact commands to dump your SQLite legacy database to JSON via `dumpdata`, run `migrate` on your connected Supabase PostgreSQL instance, and safely rebuild it using `loaddata` to natively bypass dialect crashes.
 
-*(Note: We will append the `reports/urls.py` module directly to `config/urls.py` via `include()`.)*
+### Part 2: Security Settings & Networking
+#### [MODIFY] `config/settings/base.py` & `prod.py`
+We will overhaul the security modules:
+- Enforce `SECURE_SSL_REDIRECT = True`, `SESSION_COOKIE_SECURE = True`, and `CSRF_COOKIE_SECURE = True`.
+- Configure `SECURE_HSTS_SECONDS` natively.
+- Enforce `X-Frame-Options` and `X-Content-Type-Options`.
+- Inject the segregated logging paths: `logs/security.log` and `logs/error.log` separated by logging severity constraints (`WARNING`, `CRITICAL`).
 
-### UI Utilities & Templates Component
+### Part 3: Roles & Permissions (RBAC)
+#### [NEW] `apps/core/permissions.py`
+- We will build a custom `@role_required(roles=[...])` view decorator.
 
-#### [NEW] Custom Template Filter (`apps/core/templatetags/currency_tags.py`)
-- Add a custom `{{ value|indian_currency }}` filter to aggressively ensure all values render as `₹ 1,25,000.00` correctly across the module.
+#### [MODIFY] `apps/core/management/commands/setup_roles.py` (New File)
+- A native Django `manage.py` startup script enforcing the automated creation of three standard groups:
+  1. `Admin` (Full control)
+  2. `Accountant` (Can sync and view ledgers/reports)
+  3. `User` (Restricted viewing).
 
-#### [MODIFY] `templates/base.html`
-- Inject the Analytics drop-down into the sidebar including the new URLs.
-- Include a lightweight global CSS spinner for page-load UX.
+#### [MODIFY] `apps/reports/views.py` & `apps/core/views.py`
+- Swap standard `@login_required` decorators with the strict `@role_required(['Admin', 'Accountant'])` isolating the financial analytics layer completely against basic generic `User` accounts.
 
-#### [NEW] `templates/reports/trial_balance.html`
-- **Tables**: `sticky top-0 bg-white z-10` headers with `hover:bg-gray-50 transition-all duration-200` row effects.
-- **UX**: Inject the "Difference Check" floating UI. If `diff == 0`, show green "Balanced". Else red mismatch banner.
-- **Empty States**: If no data, show a beautiful centered SVG Heroicon with `Start adding vouchers to see reports`.
+### Part 4: Data Validation Polish
+*(Note: Your underlying `Voucher` logic already has rigid entry math constraints mapping `dr == cr` via the `django.db.models.Sum` operation in the `clean()` hook, and `Ledger` is safely walled by `unique_together`)*. 
+- We will rigorously check global HTML templates (`base.html`, `dashboard.html`) ensuring Django's native `{% csrf_token %}` is mounted correctly within any `fetch()/POST` manual XML action.
 
-#### [NEW] `templates/reports/profit_loss.html`
-- **Layout**: Dynamic Summary Top-Cards (Income, Expense, Net Result) conditionally styled Red/Green. Dual-Column Income vs Expense rendering. Section headings correctly mapped.
-- **Charts**: 
-  - Income vs Expenses Bar Chart / Net Profit Trend.
-  - **Tooltip Formatting**: Injected JS callback using `Intl.NumberFormat('en-IN')` to display exact Indian currency strings on hover dynamically.
-- **Empty States**: SVGs for no data.
+## User Review Required
 
-## Verification Plan
-- **Template Logic Check**: Verify `indian_currency` tag runs natively.
-- **End-to-End**: Test CSV outputs to ensure the top two rows contain the Metadata before CSV ingestion starts.
+> [!WARNING]  
+> **PostgreSQL Migration Constraints:** When moving from SQLite to PostgreSQL via `dumpdata`, models involving `Content-Type` and `Auth Permissions` often clash if they are generated by `migrate` simultaneously. The standard approach requires excising them natively during the dump or clearing the PostgreSQL `django_content_type` tables before `loaddata`. I will provide a streamlined `python manage.py` command cascade that ensures this goes flawlessly, but please confirm if you plan on retaining previous SQLite test data or starting the PostgreSQL server fresh.
+
+## Verification
+- Test generation of DB Migration commands natively.
+- Verification of Group creation logic via Shell.
+- Ensure the app natively boots without crashing against the new heavily guarded `settings.py`.

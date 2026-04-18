@@ -12,7 +12,7 @@ from django.conf.urls.static import static
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from core.views import (
+from apps.core.views import (
     dashboard_view, 
     sync_logs_view, 
     trigger_sync_view, 
@@ -71,6 +71,9 @@ urlpatterns = [
     path('sync-logs/', sync_logs_view, name='sync-logs'),
     path('about-project/', about_project_view, name='about-project'),
     path('reports/', include('reports.urls')),
+    path('vouchers/', include('voucher.urls')),
+    path('masters/', include('ledger.urls')),
+    path('inventory/', include('inventory.urls')),
 
     # ─── UI AJAX Actions ───
     path('trigger-sync/', trigger_sync_view, name='trigger-sync'),

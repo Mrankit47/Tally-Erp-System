@@ -10,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+from core.permissions import role_required
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
@@ -21,6 +22,7 @@ from voucher.models import VoucherEntry, EntryType, VoucherType
 
 
 @login_required
+@role_required(['Admin', 'Accountant'])
 def trial_balance_view(request):
     """Renders the HTML Trial Balance Report."""
     company = Company.objects.first()
@@ -39,6 +41,7 @@ def trial_balance_view(request):
 
 
 @login_required
+@role_required(['Admin', 'Accountant'])
 def export_trial_balance_csv(request):
     """Exports the Trial Balance to CSV."""
     company = Company.objects.first()
@@ -74,6 +77,7 @@ def export_trial_balance_csv(request):
 
 
 @login_required
+@role_required(['Admin', 'Accountant'])
 def profit_loss_view(request):
     """Renders the HTML Profit & Loss Statement with Visual Analytics."""
     company = Company.objects.first()
@@ -128,6 +132,7 @@ def profit_loss_view(request):
 
 
 @login_required
+@role_required(['Admin', 'Accountant'])
 def export_profit_loss_csv(request):
     """Exports the Profit & Loss statement to CSV."""
     company = Company.objects.first()
