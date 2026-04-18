@@ -1,0 +1,2 @@
+# This directory holds collected static files.
+# Populated by: python manage.py collectstatic

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Sync Logs{% endblock %}
+{% block page_title %}Tally Sync Logs{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- ═══════════ HEADER BAR ═══════════ -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Sync History</h2>
+            <p class="mt-1 text-sm text-gray-500">Complete audit trail of all Tally synchronization events.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <!-- Filter Badges -->
+            <a href="{% url 'sync-logs' %}"
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                      {% if not filter_status %}bg-brand-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                All
+            </a>
+            <a href="{% url 'sync-logs' %}?status=SUCCESS"
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                      {% if filter_status == 'SUCCESS' %}bg-emerald-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                ✓ Success
+            </a>
+            <a href="{% url 'sync-logs' %}?status=FAILED"
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                      {% if filter_status == 'FAILED' %}bg-red-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                ✕ Failed
+            </a>
+        </div>
+    </div>
+
+    <!-- ═══════════ SUMMARY PILLS ═══════════ -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in animate-delay-1">
+        <div class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm">
+            <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Total</p>
+            <p class="text-xl font-bold text-gray-900 mt-0.5">{{ total_logs }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm">
+            <p class="text-xs text-emerald-500 font-medium uppercase tracking-wider">Success</p>
+            <p class="text-xl font-bold text-emerald-600 mt-0.5">{{ success_count }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm">
+            <p class="text-xs text-red-400 font-medium uppercase tracking-wider">Failed</p>
+            <p class="text-xl font-bold text-red-600 mt-0.5">{{ failed_count }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm">
+            <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Records</p>
+            <p class="text-xl font-bold text-gray-900 mt-0.5">{{ total_records }}</p>
+        </div>
+    </div>
+
+    <!-- ═══════════ LOG TABLE ═══════════ -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in animate-delay-2">
+        {% if logs %}
+        <!-- Desktop Table -->
+        <div class="hidden lg:block overflow-x-auto">
+            <table class="w-full text-sm" id="sync-log-table">
+                <thead>
+                    <tr class="bg-gray-50/80 text-left">
+                        <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Timestamp</th>
+                        <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Operation</th>
+                        <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Model</th>
+                        <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Records</th>
+                        <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Message</th>
+                        <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for log in logs %}
+                    <tr class="hover:bg-gray-50/50 transition-colors {% if log.status == 'FAILED' %}bg-red-50/30{% endif %}">
+                        <td class="px-6 py-4 text-gray-500 whitespace-nowrap">
+                            <div class="text-xs">
+                                <span class="text-gray-700 font-medium">{{ log.created_at|date:"d M Y" }}</span>
+                                <br>
+                                <span class="text-gray-400">{{ log.created_at|time:"H:i:s" }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold
+                                {% if log.operation == 'FETCH' %}bg-blue-50 text-blue-700 border border-blue-100
+                                {% else %}bg-amber-50 text-amber-700 border border-amber-100{% endif %}">
+                                {% if log.operation == 'FETCH' %}
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                                {% else %}
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                                {% endif %}
+                                {{ log.operation }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-gray-700 font-medium">{{ log.model_name }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if log.status == 'SUCCESS' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                SUCCESS
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-100">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                FAILED
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="text-gray-700 font-semibold">{{ log.records_affected }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-500 max-w-sm">
+                            <p class="truncate text-xs leading-relaxed" title="{{ log.message }}">{{ log.message }}</p>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            {% if log.status == 'FAILED' %}
+                            <button onclick="retrySync({{ log.id }}, this)" class="btn-retry inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gray-800 hover:bg-gray-700 rounded-md shadow-sm transition-colors relative h-8 w-20 justify-center">
+                                <span class="btn-text inline-flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Retry</span>
+                                <div class="loader hidden absolute inset-0 bg-gray-800 rounded-md flex items-center justify-center">
+                                    <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="lg:hidden divide-y divide-gray-100">
+            {% for log in logs %}
+            <div class="p-4 space-y-3 {% if log.status == 'FAILED' %}bg-red-50/30{% endif %}">
+                <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold
+                        {% if log.operation == 'FETCH' %}bg-blue-50 text-blue-700{% else %}bg-amber-50 text-amber-700{% endif %}">
+                        {% if log.operation == 'FETCH' %}↓{% else %}↑{% endif %}
+                        {{ log.operation }}
+                    </span>
+
+                    {% if log.status == 'SUCCESS' %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        SUCCESS
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        FAILED
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-700 font-semibold">{{ log.model_name }}</span>
+                    <span class="text-gray-400">{{ log.records_affected }} records</span>
+                </div>
+
+                <p class="text-sm text-gray-600 leading-relaxed">{{ log.message|truncatewords:25 }}</p>
+
+                <div class="flex items-center justify-between mt-2">
+                    <p class="text-xs text-gray-400">{{ log.created_at|date:"d M Y" }} at {{ log.created_at|time:"H:i:s" }}</p>
+                    {% if log.status == 'FAILED' %}
+                    <button onclick="retrySync({{ log.id }}, this)" class="btn-retry inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gray-800 hover:bg-gray-700 rounded-md shadow-sm transition-colors relative h-8 w-20 justify-center">
+                        <span class="btn-text">Retry</span>
+                        <div class="loader hidden absolute inset-0 bg-gray-800 rounded-md flex items-center justify-center">
+                            <div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="px-6 py-16 text-center">
+            <svg class="mx-auto w-16 h-16 text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <h3 class="text-lg font-semibold text-gray-500 mb-1">No sync logs found</h3>
+            <p class="text-sm text-gray-400">{% if filter_status %}Try clearing the filter or {% endif %}synchronize with Tally to see activity here.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ═══════════ PAGINATION ═══════════ -->
+    {% if logs.has_other_pages %}
+    <div class="flex items-center justify-center gap-1">
+        {% if logs.has_previous %}
+        <a href="?page={{ logs.previous_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}"
+           class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">← Prev</a>
+        {% endif %}
+
+        {% for page_num in logs.paginator.page_range %}
+            {% if logs.number == page_num %}
+            <span class="px-3 py-2 rounded-lg text-sm font-bold bg-brand-600 text-white shadow-sm">{{ page_num }}</span>
+            {% elif page_num > logs.number|add:"-3" and page_num < logs.number|add:"3" %}
+            <a href="?page={{ page_num }}{% if filter_status %}&status={{ filter_status }}{% endif %}"
+               class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">{{ page_num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if logs.has_next %}
+        <a href="?page={{ logs.next_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}"
+           class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Data Logic -->
+<script>
+    async function retrySync(logId, btnElement) {
+        const textSpan = btnElement.querySelector('.btn-text');
+        const loader = btnElement.querySelector('.loader');
+        
+        // Hide text, show loader
+        textSpan.classList.add('opacity-0');
+        loader.classList.remove('hidden');
+        btnElement.disabled = true;
+
+        try {
+            const response = await fetchWithCSRF(`/retry-sync/${logId}/`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (response.ok && data.status === 'success') {
+                showToast(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast(data.message || 'An error occurred during retry.', 'error');
+            }
+        } catch (error) {
+            showToast('Network error while retrying.', 'error');
+        } finally {
+            textSpan.classList.remove('opacity-0');
+            loader.classList.add('hidden');
+            btnElement.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

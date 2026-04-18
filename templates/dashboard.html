@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="max-w-7xl mx-auto space-y-8">
+
+    <!-- ═══════════ HEADER & ACTIONS ═══════════ -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Welcome back{% if user.first_name %}, {{ user.first_name }}{% endif %}</h2>
+            <p class="mt-1 text-sm text-gray-500">Here's an overview of your financial operations.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="triggerSync('ledgers', this)" class="btn-sync relative inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-all">
+                <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Sync Ledgers
+                <div class="loader hidden absolute inset-0 bg-white/80 rounded-lg flex items-center justify-center">
+                    <div class="w-4 h-4 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </button>
+            <button onclick="triggerSync('vouchers', this)" class="btn-sync relative inline-flex items-center gap-2 px-4 py-2 bg-brand-600 border border-transparent rounded-lg text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                Push Vouchers
+                <div class="loader hidden absolute inset-0 bg-brand-600/90 rounded-lg flex items-center justify-center">
+                    <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════ STATS CARDS ═══════════ -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <!-- Total Sales -->
+        <div class="stat-card bg-white rounded-2xl border border-gray-100 p-6 shadow-sm animate-fade-in animate-delay-1">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Sales</span>
+            </div>
+            <p class="text-3xl font-extrabold text-gray-900">{{ sales_count }}</p>
+            <p class="text-sm text-gray-500 mt-1">Total sales vouchers</p>
+            <div class="mt-3 pt-3 border-t border-gray-50">
+                <p class="text-xs text-gray-400">₹ <span class="text-gray-700 font-semibold">{{ sales_total|default:"0.00" }}</span> total value</p>
+            </div>
+        </div>
+
+        <!-- Total Payments -->
+        <div class="stat-card bg-white rounded-2xl border border-gray-100 p-6 shadow-sm animate-fade-in animate-delay-2">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Payments</span>
+            </div>
+            <p class="text-3xl font-extrabold text-gray-900">{{ payments_count }}</p>
+            <p class="text-sm text-gray-500 mt-1">Total payment vouchers</p>
+            <div class="mt-3 pt-3 border-t border-gray-50">
+                <p class="text-xs text-gray-400">₹ <span class="text-gray-700 font-semibold">{{ payments_total|default:"0.00" }}</span> total value</p>
+            </div>
+        </div>
+
+        <!-- Total Receipts -->
+        <div class="stat-card bg-white rounded-2xl border border-gray-100 p-6 shadow-sm animate-fade-in animate-delay-3">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Receipts</span>
+            </div>
+            <p class="text-3xl font-extrabold text-gray-900">{{ receipts_count }}</p>
+            <p class="text-sm text-gray-500 mt-1">Total receipt vouchers</p>
+            <div class="mt-3 pt-3 border-t border-gray-50">
+                <p class="text-xs text-gray-400">₹ <span class="text-gray-700 font-semibold">{{ receipts_total|default:"0.00" }}</span> total value</p>
+            </div>
+        </div>
+
+        <!-- Sync Status -->
+        <div class="stat-card bg-white rounded-2xl border border-gray-100 p-6 shadow-sm animate-fade-in animate-delay-4">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-xl {% if sync_failed > 0 %}bg-amber-50{% else %}bg-emerald-50{% endif %} flex items-center justify-center">
+                    {% if sync_failed > 0 %}
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    {% else %}
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    {% endif %}
+                </div>
+                <span class="text-xs font-medium {% if sync_failed > 0 %}text-amber-700 bg-amber-50{% else %}text-emerald-700 bg-emerald-50{% endif %} px-2 py-0.5 rounded-full">
+                    {% if sync_failed > 0 %}Issues Found{% else %}Healthy{% endif %}
+                </span>
+            </div>
+            <div class="flex items-baseline gap-3">
+                <div>
+                    <p class="text-3xl font-extrabold text-emerald-600">{{ sync_success }}</p>
+                    <p class="text-xs text-gray-400">Success</p>
+                </div>
+                <span class="text-gray-300 text-xl">/</span>
+                <div>
+                    <p class="text-3xl font-extrabold {% if sync_failed > 0 %}text-red-500{% else %}text-gray-400{% endif %}">{{ sync_failed }}</p>
+                    <p class="text-xs text-gray-400">Failed</p>
+                </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between">
+                <p class="text-xs text-gray-400">Last sync: <span class="text-gray-600">{% if last_sync_time %}{{ last_sync_time|timesince }} ago{% else %}Never{% endif %}</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ CHARTS SECTION ═══════════ -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-in" style="animation-delay: 0.25s;">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 class="text-sm font-bold text-gray-900 mb-4">Monthly Sales Trend</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 class="text-sm font-bold text-gray-900 mb-4">Payments vs Receipts</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="cashflowChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ RECENT SYNC LOGS ═══════════ -->
+    <div class="animate-fade-in" style="animation-delay: 0.3s;">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Recent Sync Activity</h3>
+            <a href="{% url 'sync-logs' %}" class="text-sm font-medium text-brand-600 hover:text-brand-700">View all →</a>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {% if recent_logs %}
+            <!-- Desktop Table -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50/80 text-left">
+                            <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Operation</th>
+                            <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Model</th>
+                            <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Message</th>
+                            <th class="px-6 py-3.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for log in recent_logs %}
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold
+                                    {% if log.operation == 'FETCH' %}bg-blue-50 text-blue-700{% else %}bg-amber-50 text-amber-700{% endif %}">
+                                    {% if log.operation == 'FETCH' %}↓{% else %}↑{% endif %}
+                                    {{ log.operation }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-600 font-medium">{{ log.model_name }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center gap-1.5 text-xs font-semibold
+                                    {% if log.status == 'SUCCESS' %}text-emerald-700{% else %}text-red-600{% endif %}">
+                                    <span class="w-1.5 h-1.5 rounded-full {% if log.status == 'SUCCESS' %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+                                    {{ log.status }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-500 max-w-xs truncate">{{ log.message|truncatewords:15 }}</td>
+                            <td class="px-6 py-4 text-gray-400 text-xs whitespace-nowrap">{{ log.created_at|timesince }} ago</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile Cards -->
+            <div class="md:hidden divide-y divide-gray-100">
+                {% for log in recent_logs %}
+                <div class="p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold
+                            {% if log.operation == 'FETCH' %}bg-blue-50 text-blue-700{% else %}bg-amber-50 text-amber-700{% endif %}">
+                            {% if log.operation == 'FETCH' %}↓{% else %}↑{% endif %}
+                            {{ log.operation }} {{ log.model_name }}
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold
+                            {% if log.status == 'SUCCESS' %}text-emerald-700{% else %}text-red-600{% endif %}">
+                            <span class="w-1.5 h-1.5 rounded-full {% if log.status == 'SUCCESS' %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+                            {{ log.status }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600">{{ log.message|truncatewords:20 }}</p>
+                    <p class="text-xs text-gray-400">{{ log.created_at|timesince }} ago</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="px-6 py-12 text-center">
+                <svg class="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <p class="text-sm text-gray-400">No sync activity yet. Connect to Tally to get started.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Data & Logic -->
+<script>
+    // --- 1. Sync Actions Logic ---
+    async function triggerSync(type, btnElement) {
+        const loader = btnElement.querySelector('.loader');
+        
+        // Disable buttons and show loader
+        document.querySelectorAll('.btn-sync').forEach(b => b.disabled = true);
+        loader.classList.remove('hidden');
+
+        try {
+            const response = await fetchWithCSRF("{% url 'trigger-sync' %}", {
+                method: 'POST',
+                body: JSON.stringify({ type: type })
+            });
+            const data = await response.json();
+            
+            if (response.ok && data.status === 'success') {
+                showToast(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1500); // Reload to update dashboard
+            } else {
+                showToast(data.message || 'An error occurred during sync.', 'error');
+            }
+        } catch (error) {
+            showToast('Network error while triggering sync.', 'error');
+        } finally {
+            // Re-enable and hide loader
+            document.querySelectorAll('.btn-sync').forEach(b => b.disabled = false);
+            loader.classList.add('hidden');
+        }
+    }
+
+    // --- 2. Chart.js Initialization ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
+        
+        // Common config
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.scale.grid.color = '#f1f5f9';
+        
+        const noData = chartData.labels.length === 0;
+
+        // Sales Trend Chart (Line)
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: noData ? ['Jan', 'Feb', 'Mar'] : chartData.labels,
+                datasets: [{
+                    label: 'Sales Revenue',
+                    data: noData ? [0, 0, 0] : chartData.sales,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#4f46e5',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, border: { display: false } },
+                    x: { border: { display: false }, grid: { display: false } }
+                }
+            }
+        });
+
+        // Cashflow Chart (Bar)
+        const cashCtx = document.getElementById('cashflowChart').getContext('2d');
+        new Chart(cashCtx, {
+            type: 'bar',
+            data: {
+                labels: noData ? ['Jan', 'Feb', 'Mar'] : chartData.labels,
+                datasets: [
+                    {
+                        label: 'Receipts',
+                        data: noData ? [0, 0, 0] : chartData.receipts,
+                        backgroundColor: '#10b981', // Emerald
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Payments',
+                        data: noData ? [0, 0, 0] : chartData.payments,
+                        backgroundColor: '#ef4444', // Red
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6 } } 
+                },
+                scales: {
+                    y: { beginAtZero: true, border: { display: false } },
+                    x: { border: { display: false }, grid: { display: false } }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,178 @@
+"""
+Voucher models.
+
+The heart of the accounting system. 
+Handles financial transactions, ensuring double-entry integrity
+and sequential document numbering.
+"""
+
+from django.db import models, transaction
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from core.models import TenantModel
+
+
+class VoucherType(models.TextChoices):
+    """Supported transaction types in the ERP."""
+    CONTRA = 'CONTRA', 'Contra'
+    PAYMENT = 'PAYMENT', 'Payment'
+    RECEIPT = 'RECEIPT', 'Receipt'
+    JOURNAL = 'JOURNAL', 'Journal'
+    SALES = 'SALES', 'Sales'
+    PURCHASE = 'PURCHASE', 'Purchase'
+
+
+class EntryType(models.TextChoices):
+    """Debit or Credit indicator."""
+    DEBIT = 'DR', 'Debit'
+    CREDIT = 'CR', 'Credit'
+
+
+class VoucherSequence(models.Model):
+    """
+    Internal tracker for the next available voucher number.
+    Scoped to Company + VoucherType.
+    """
+    company = models.ForeignKey('company.Company', on_delete=models.CASCADE)
+    voucher_type = models.CharField(max_length=20, choices=VoucherType.choices)
+    last_number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ['company', 'voucher_type']
+
+
+class Voucher(TenantModel):
+    """
+    Financial document header.
+    """
+    number = models.CharField(
+        max_length=50,
+        editable=False,
+        help_text='Auto-generated voucher number (e.g., SAL-0001).'
+    )
+    date = models.DateField(
+        default=timezone.now,
+        db_index=True
+    )
+    voucher_type = models.CharField(
+        max_length=20,
+        choices=VoucherType.choices,
+        db_index=True
+    )
+    narration = models.TextField(
+        blank=True,
+        help_text='General comments for this transaction.'
+    )
+    is_posted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Once posted, the voucher and its entries become read-only.'
+    )
+
+    class Meta:
+        verbose_name = 'Voucher'
+        verbose_name_plural = 'Vouchers'
+        ordering = ['-date', '-number']
+        indexes = [
+            models.Index(fields=['company', 'date', 'voucher_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.number} | {self.date}"
+
+    def clean(self):
+        """
+        Enforce business rules:
+        1. Date must be within the company's financial year.
+        2. Prevent modification if is_posted is True.
+        3. (On update) Ensure total DR equals total CR.
+        """
+        # Block edits to posted vouchers
+        if self.pk:
+            original = Voucher.all_objects.get(pk=self.pk)
+            if original.is_posted:
+                # Allow unposting only if specifically implemented, 
+                # but here we block all attribute changes if originally posted.
+                raise ValidationError("Cannot modify a posted voucher. Unpost it first if permitted.")
+
+        # 1. Financial Year Check
+        if self.date < self.company.financial_year_start or self.date > self.company.financial_year_end:
+            raise ValidationError(
+                f"Voucher date {self.date} must be within the financial year "
+                f"({self.company.financial_year_start} to {self.company.financial_year_end})."
+            )
+
+        # Dr/Cr check (simplified for existing records)
+        if self.pk:
+            entries = self.entries.all()
+            if entries.exists():
+                from django.db.models import Sum
+                dr_sum = entries.filter(entry_type=EntryType.DEBIT).aggregate(s=Sum('amount'))['s'] or 0
+                cr_sum = entries.filter(entry_type=EntryType.CREDIT).aggregate(s=Sum('amount'))['s'] or 0
+                if dr_sum != cr_sum:
+                    raise ValidationError(f"Accounting Mismatch: Total Debit ({dr_sum}) != Total Credit ({cr_sum})")
+
+    def delete(self, *args, **kwargs):
+        """Block deletion of posted vouchers."""
+        if self.is_posted:
+            raise ValidationError("Cannot delete a posted voucher.")
+        super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        """
+        Handle auto-numbering on first save.
+        """
+        if not self.number:
+            with transaction.atomic():
+                seq, _ = VoucherSequence.objects.select_for_update().get_or_create(
+                    company=self.company,
+                    voucher_type=self.voucher_type
+                )
+                seq.last_number += 1
+                seq.save()
+                
+                prefix = self.voucher_type[:3].upper()
+                self.number = f"{prefix}-{str(seq.last_number).zfill(4)}"
+        
+        super().save(*args, **kwargs)
+
+
+class VoucherEntry(TenantModel):
+    """
+    Individual line items within a voucher.
+    Each entry represents a single movement in a Ledger.
+    """
+    voucher = models.ForeignKey(
+        Voucher,
+        on_delete=models.CASCADE,
+        related_name='entries'
+    )
+    ledger = models.ForeignKey(
+        'ledger.Ledger',
+        on_delete=models.PROTECT,
+        related_name='voucher_entries'
+    )
+    amount = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        help_text='Absolute value of the transaction.'
+    )
+    entry_type = models.CharField(
+        max_length=2,
+        choices=EntryType.choices,
+        help_text='DR for Debit, CR for Credit.'
+    )
+
+    class Meta:
+        verbose_name = 'Voucher Entry'
+        verbose_name_plural = 'Voucher Entries'
+        # Ensure positive amounts
+        constraints = [
+            models.CheckConstraint(check=models.Q(amount__gt=0), name='voucher_entry_amount_positive'),
+        ]
+        indexes = [
+            models.Index(fields=['company', 'ledger', 'voucher']),
+        ]
+
+    def __str__(self):
+        return f"{self.voucher.number} | {self.entry_type} {self.ledger.name} {self.amount}"

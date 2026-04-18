@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}About Project{% endblock %}
+{% block page_title %}System Architecture{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8 animate-fade-in">
+
+    <!-- Header -->
+    <div>
+        <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Enterprise Resource Planning System</h2>
+        <p class="mt-2 text-lg text-gray-500">A robust, full-duplex accounting integration bridging a modern Django backend with Tally Prime.</p>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-50">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                Technology Stack
+            </h3>
+        </div>
+        <div class="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p class="text-sm font-bold text-gray-900">Backend</p>
+                <p class="text-xs text-gray-500 mt-1">Django 5.2<br>Python 3.11</p>
+            </div>
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p class="text-sm font-bold text-gray-900">Database</p>
+                <p class="text-xs text-gray-500 mt-1">PostgreSQL<br>(via Psycopg2)</p>
+            </div>
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p class="text-sm font-bold text-gray-900">Frontend</p>
+                <p class="text-xs text-gray-500 mt-1">Django Templates<br>Tailwind CSS<br>Chart.js</p>
+            </div>
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p class="text-sm font-bold text-gray-900">Integration</p>
+                <p class="text-xs text-gray-500 mt-1">Tally Prime XML<br>Requests API</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-delay-1">
+        <div class="px-6 py-5 border-b border-gray-50">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                System Architecture
+            </h3>
+        </div>
+        <div class="p-6 overflow-x-auto bg-gray-900 text-gray-100 font-mono text-xs sm:text-sm rounded-b-2xl leading-relaxed">
+            <pre>
+[User Interface]                     [Django Backend]                        [Tally ERP]
+  Tailwind UI    === HTTP POST ===>   Action Views     === Intranet ===>     XML Server
+ (Dashboard)       (AJAX/JSON)       (trigger_sync)                        (Port: 9000)
+      |                                    |                                     |
+      |                                    | (Service Layer)                     |
+      |                                    v                                     |
+      |                          +--------------------+                          |
+      |                          | TallySyncService   |                          |
+      |                          | - XML Generator    | ==== XML Request ===>    |
+      |                          | - Retry Client     | <=== XML Response ===    |
+      |                          | - XML Parser       |                          |
+      |                          +---------+----------+                          |
+      |                                    |                                     |
+      |                                    v                                     |
+      |                          [Database Models]                               |
+      +----- Query / View -------  - Voucher/Entry                               |
+                                   - Ledger/Group                                |
+                                   - SyncLog (Audit)                             |
+            </pre>
+        </div>
+    </div>
+
+    <!-- Data Flow -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-delay-2">
+        <div class="px-6 py-5 border-b border-gray-50">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                Data Flow & Integrity
+            </h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">1. Transactional Validation</h4>
+                <p class="mt-1 text-sm text-gray-600">Before a voucher is pushed to Tally, the service checks strict invariants: It ensures the double-entry accounting matches (`Sum(Debit) == Sum(Credit)`), verifying structural balance via database model constraints.</p>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">2. Tally XML Compliance</h4>
+                <p class="mt-1 text-sm text-gray-600">Data is serialized into Tally's expected XML `<ENVELOPE>` structure using Python's `xml.etree.ElementTree`. The generator strictly handles `ISDEEMEDPOSITIVE` logic (Yes for Dr., No for Cr.) and deduces the `PARTYLEDGERNAME` based on transaction side.</p>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">3. Idempotent Synchronization</h4>
+                <p class="mt-1 text-sm text-gray-600">The system inherently avoids duplicating records. Pushes are guarded against vouchers that already bear a `tally_id`. The "Retry Failed" bulk syncer uniquely operates only on `PENDING` or `FAILED` vouchers.</p>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">4. Comprehensive Audit Trails</h4>
+                <p class="mt-1 text-sm text-gray-600">Every external network interaction generates a `SyncLog` record containing the exact timestamp, status, and raw Tally XML response message (`LINEERROR`) guaranteeing flawless offline debugging.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

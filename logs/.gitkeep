@@ -1,0 +1,2 @@
+# This directory holds application log files.
+# erp.log is auto-created by Django's RotatingFileHandler.

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% load currency_tags %}
+
+{% block title %}Profit & Loss{% endblock %}
+{% block page_title %}Profit & Loss{% endblock %}
+
+{% block content %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="max-w-7xl mx-auto space-y-8 animate-fade-in">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Profit & Loss Statement</h2>
+            <p class="text-sm text-gray-500 mt-1">Financial performance covering all incomes and expenses.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'reports:export_profit_loss_csv' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Export CSV
+            </a>
+        </div>
+    </div>
+
+    {% if is_empty %}
+    <!-- Empty State -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-12 shadow-sm text-center">
+        <div class="w-16 h-16 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-brand-100">
+            <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900">No financial data available yet</h3>
+        <p class="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Start adding vouchers to see reports on your commercial performance.</p>
+    </div>
+    {% else %}
+
+    <!-- ═══════════ SUMMARY TOP CARDS ═══════════ -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 animate-delay-1">
+        <!-- Total Income -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all duration-200">
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Total Income</p>
+            <p class="text-3xl font-mono font-extrabold text-gray-900">{{ pl.total_income|indian_currency }}</p>
+        </div>
+
+        <!-- Total Expenses -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all duration-200">
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Total Expenses</p>
+            <p class="text-3xl font-mono font-extrabold text-gray-900">{{ pl.total_expenses|indian_currency }}</p>
+        </div>
+
+        <!-- Net Result -->
+        <div class="rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all duration-200
+             {% if pl.is_profit %}bg-emerald-50 border-emerald-100{% else %}bg-red-50 border-red-100{% endif %}">
+            <p class="text-sm font-bold uppercase tracking-wider mb-2
+                      {% if pl.is_profit %}text-emerald-700{% else %}text-red-700{% endif %}">
+                {% if pl.is_profit %}Net Profit{% else %}Net Loss{% endif %}
+            </p>
+            <p class="text-3xl font-mono font-extrabold
+                      {% if pl.is_profit %}text-emerald-600{% else %}text-red-600{% endif %}">
+                {{ pl.net_result|indian_currency }}
+            </p>
+        </div>
+    </div>
+
+    <!-- ═══════════ T-SHAPED P&L TABLE ═══════════ -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-delay-2">
+        <!-- Incomes -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 block">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Incomes</h3>
+            </div>
+            <div class="max-h-[500px] overflow-y-auto flex-1">
+                <table class="w-full text-sm text-left">
+                    <thead class="sticky top-0 bg-white z-10 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                        <tr>
+                            <th class="px-6 py-3 font-semibold text-gray-500 text-xs uppercase w-3/4">Ledger</th>
+                            <th class="px-6 py-3 font-semibold text-gray-500 text-xs uppercase text-right w-1/4">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for ledger in pl.incomes %}
+                        <tr class="hover:bg-gray-50 transition-all duration-200 group">
+                            <td class="px-6 py-3.5 text-gray-700 font-medium group-hover:text-emerald-600 transition-colors">{{ ledger.name }}</td>
+                            <!-- For income, valid amount is Credit - Debit -->
+                            <td class="px-6 py-3.5 text-gray-600 text-right font-mono font-medium">{% widthratio ledger.credit 1 1 as cr %}{% widthratio ledger.debit 1 1 as dr %}{{ ledger.credit|add:"-"|add:dr|indian_currency }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center rounded-b-xl">
+                <span class="text-sm font-bold text-gray-600 uppercase">Total Income</span>
+                <span class="text-lg font-mono font-bold text-gray-900">{{ pl.total_income|indian_currency }}</span>
+            </div>
+        </div>
+
+        <!-- Expenses -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 block">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Expenses</h3>
+            </div>
+            <div class="max-h-[500px] overflow-y-auto flex-1">
+                <table class="w-full text-sm text-left">
+                    <thead class="sticky top-0 bg-white z-10 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                        <tr>
+                            <th class="px-6 py-3 font-semibold text-gray-500 text-xs uppercase w-3/4">Ledger</th>
+                            <th class="px-6 py-3 font-semibold text-gray-500 text-xs uppercase text-right w-1/4">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for ledger in pl.expenses %}
+                        <tr class="hover:bg-gray-50 transition-all duration-200 group">
+                            <td class="px-6 py-3.5 text-gray-700 font-medium group-hover:text-red-500 transition-colors">{{ ledger.name }}</td>
+                            <!-- For expense, valid amount is Debit - Credit -->
+                            <td class="px-6 py-3.5 text-gray-600 text-right font-mono font-medium">{% widthratio ledger.debit 1 1 as dr %}{% widthratio ledger.credit 1 1 as cr %}{{ ledger.debit|add:"-"|add:cr|indian_currency }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center rounded-b-xl">
+                <span class="text-sm font-bold text-gray-600 uppercase">Total Expenses</span>
+                <span class="text-lg font-mono font-bold text-gray-900">{{ pl.total_expenses|indian_currency }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ CHARTS & ANALYTICS ═══════════ -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-delay-3">
+        <!-- Top 5 Expenses -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:col-span-1">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Top Expenses</h3>
+            <div class="space-y-4">
+                {% for expense in top_expenses %}
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-sm font-medium text-gray-700 truncate w-2/3" title="{{ expense.name }}">{{ expense.name }}</span>
+                        <span class="text-sm font-mono font-bold text-gray-900">{{ expense.amount|indian_currency }}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-red-500 h-1.5 rounded-full expense-bar" data-percent="{{ expense.percent }}"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-gray-400 italic">No expenses recorded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 12-Month Profit Trend -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:col-span-2">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">12-Month Profit Trend</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="profitTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Chart & Mechanics -->
+{% if chart_data_json and not is_empty %}
+{{ chart_data_json|json_script:"chart-data" }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Apply expense bar widths avoiding IDE CSS parser conflicts
+        document.querySelectorAll('.expense-bar').forEach(function(bar) {
+            bar.style.width = bar.getAttribute('data-percent') + '%';
+        });
+        
+        const chartDataElement = document.getElementById('chart-data');
+        if (!chartDataElement) return;
+        
+        const rawJson = JSON.parse(chartDataElement.textContent);
+        const chartData = JSON.parse(rawJson);
+        
+        // Common defaults
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#94a3b8';
+        
+        // Indian Currency Formatter Tooltip Callback
+        const tooltipCurrencyFormatter = function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+                label += ': ';
+            }
+            if (context.parsed.y !== null) {
+                label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
+            }
+            return label;
+        };
+
+        const ctx = document.getElementById('profitTrendChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: [
+                    {
+                        label: 'Net Result',
+                        data: chartData.profit,
+                        borderColor: '#059669', // Emerald 600
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#059669',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: tooltipCurrencyFormatter
+                        }
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        border: { display: false },
+                        ticks: {
+                            callback: function(value, index, values) {
+                                if(value === 0) return '0';
+                                // concise format for axis
+                                return '₹' + (value/1000).toFixed(0) + 'k';
+                            }
+                        }
+                    },
+                    x: { 
+                        border: { display: false }, 
+                        grid: { display: false } 
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}
