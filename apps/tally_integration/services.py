@@ -15,7 +15,8 @@ from .client import TallyClient, TallyClientError
 from .xml_utilities import TallyXMLGenerator, TallyXMLParser
 from .models import SyncLog, SyncOperation, SyncStatus
 from ledger.models import Ledger, LedgerGroup
-from voucher.models import VoucherType, EntryType
+from inventory.models import StockItem
+from voucher.models import Voucher, VoucherType, EntryType
 from core.models import SyncStatus as ModelSyncStatus
 
 import logging
@@ -59,7 +60,8 @@ class TallySyncService:
             tally_ledgers = self.parser.parse_ledgers(xml_response)
             
             if not tally_ledgers:
-                log.message = "No ledgers found in Tally response."
+                logger.warning(f"Tally Sync: No ledgers found. Raw response length: {len(xml_response)}")
+                log.message = f"No ledgers found in Tally response (Length: {len(xml_response)} bytes)."
                 log.save()
                 return 0
 
@@ -70,14 +72,20 @@ class TallySyncService:
             )
 
             success_count = 0
+            synced_record_ids = []
+
             for data in tally_ledgers:
-                group, _ = LedgerGroup.objects.get_or_create(
+                # 1. Handle Group
+                group, group_created = LedgerGroup.objects.get_or_create(
                     company=self.company,
                     name=data['parent'],
                     defaults={'created_by': self.user, 'parent': default_group}
                 )
+                if group_created:
+                    synced_record_ids.append(str(group.id))
 
-                Ledger.objects.update_or_create(
+                # 2. Handle Ledger
+                ledger, _ = Ledger.objects.update_or_create(
                     company=self.company,
                     name=data['name'],
                     defaults={
@@ -89,11 +97,13 @@ class TallySyncService:
                         'updated_by': self.user,
                     }
                 )
+                synced_record_ids.append(str(ledger.id))
                 success_count += 1
 
             log.status = SyncStatus.SUCCESS
             log.message = f"Successfully synchronized {success_count} ledgers from Tally."
             log.records_affected = success_count
+            log.synced_ids = synced_record_ids
             log.save()
             
             return success_count
@@ -104,6 +114,58 @@ class TallySyncService:
             raise
         except Exception as e:
             log.message = f"Unexpected Error: {str(e)}"
+            log.save()
+            raise
+
+    # =========================================================================
+    # INVENTORY SYNC (Inward — Tally → Django)
+    # =========================================================================
+
+    @transaction.atomic
+    def sync_stock_items_from_tally(self):
+        """Fetches and syncs all stock items from Tally."""
+        log = SyncLog.objects.create(
+            company=self.company,
+            created_by=self.user,
+            model_name='StockItem',
+            operation=SyncOperation.FETCH,
+            status=SyncStatus.FAILED
+        )
+        try:
+            xml_request = self.generator.get_fetch_stock_item_xml()
+            xml_response = self.client.post_with_retry(xml_request)
+            tally_items = self.parser.parse_stock_items(xml_response)
+
+            if not tally_items:
+                log.message = "No stock items found in Tally response."
+                log.save()
+                return 0
+
+            success_count = 0
+            synced_record_ids = []
+            for item in tally_items:
+                si, _ = StockItem.objects.update_or_create(
+                    company=self.company,
+                    name=item['name'],
+                    defaults={
+                        'unit_of_measure': item['unit_of_measure'],
+                        'tally_id': item['name'],
+                        'sync_status': ModelSyncStatus.SYNCED,
+                        'last_synced_at': timezone.now(),
+                        'updated_by': self.user,
+                    }
+                )
+                synced_record_ids.append(str(si.id))
+                success_count += 1
+
+            log.status = SyncStatus.SUCCESS
+            log.message = f"Successfully synchronized {success_count} stock items from Tally."
+            log.records_affected = success_count
+            log.synced_ids = synced_record_ids
+            log.save()
+            return success_count
+        except Exception as e:
+            log.message = f"Inward Stock Sync Error: {str(e)}"
             log.save()
             raise
 
@@ -147,6 +209,7 @@ class TallySyncService:
                 log.status = SyncStatus.SUCCESS
                 log.message = f"Ledger '{ledger.name}' successfully created in Tally."
                 log.records_affected = 1
+                log.synced_ids = [str(ledger.id)]
                 log.save()
                 return True
             else:
@@ -313,6 +376,7 @@ class TallySyncService:
                     f"Stats: Created={stats['created']}, Errors={stats['errors']}"
                 )
                 log.records_affected = 1
+                log.synced_ids = [str(voucher.id)]
                 log.save()
 
                 logger.info(f"{label} Voucher '{voucher.number}' synced to Tally successfully.")
@@ -344,9 +408,71 @@ class TallySyncService:
             logger.exception(f"Unexpected error pushing {label} voucher '{voucher.number}'")
             return False
 
+    def push_stock_item_to_tally(self, stock_item):
+        """Creates a single Stock Item in Tally."""
+        log = SyncLog.objects.create(
+            company=self.company,
+            created_by=self.user,
+            model_name='StockItem',
+            operation=SyncOperation.PUSH,
+            status=SyncStatus.FAILED
+        )
+        try:
+            xml_request = self.generator.get_create_stock_item_xml(
+                name=stock_item.name,
+                unit_of_measure=stock_item.unit_of_measure
+            )
+            xml_response = self.client.post_with_retry(xml_request)
+
+            if self.parser.is_import_successful(xml_response):
+                stock_item.sync_status = ModelSyncStatus.SYNCED
+                stock_item.tally_id = stock_item.name
+                stock_item.last_synced_at = timezone.now()
+                stock_item.save(update_fields=['sync_status', 'tally_id', 'last_synced_at'])
+
+                log.status = SyncStatus.SUCCESS
+                log.message = f"Stock Item '{stock_item.name}' successfully created in Tally."
+                log.records_affected = 1
+                log.synced_ids = [str(stock_item.id)]
+                log.save()
+                return True
+            else:
+                error_msg = self.parser.extract_error_message(xml_response)
+                log.message = f"Tally Rejection: {error_msg}"
+                log.save()
+                return False
+        except Exception as e:
+            log.message = f"Push Stock Error: {str(e)}"
+            log.save()
+            return False
+
     # =========================================================================
     # BATCH OPERATIONS / RETRY LOGIC
     # =========================================================================
+
+    def push_all_ledgers_to_tally(self):
+        """
+        Idempotent service to push all local Ledgers for the company to Tally.
+        """
+        unsynced_ledgers = Ledger.objects.filter(
+            company=self.company
+        )
+
+        success_count = 0
+        failed_count = 0
+
+        for ledger in unsynced_ledgers:
+            # push_ledger_to_tally handles duplicate protection
+            if self.push_ledger_to_tally(ledger):
+                success_count += 1
+            else:
+                failed_count += 1
+
+        return {
+            'success': success_count,
+            'failed': failed_count,
+            'total': success_count + failed_count
+        }
 
     def push_all_unsynced_vouchers(self):
         """
@@ -390,3 +516,48 @@ class TallySyncService:
             'failed': failed_count,
             'total': success_count + failed_count
         }
+
+    @transaction.atomic
+    def sync_vouchers_from_tally(self, voucher_type_label, from_date, to_date):
+        """
+        Fetches vouchers from Tally and records them in the SyncLog.
+        Dumb Import: We log the data for Audit.
+        In a production environment, this would create local Voucher objects.
+        """
+        log = SyncLog.objects.create(
+            company=self.company,
+            created_by=self.user,
+            model_name='Voucher',
+            operation=SyncOperation.FETCH,
+            status=SyncStatus.FAILED
+        )
+        try:
+            # Format dates to YYYYMMDD
+            fd = from_date.replace('-', '').replace('/', '')
+            td = to_date.replace('-', '').replace('/', '')
+            
+            xml_request = self.generator.get_fetch_vouchers_xml(
+                voucher_type=voucher_type_label,
+                from_date=fd,
+                to_date=td
+            )
+            xml_response = self.client.post_with_retry(xml_request)
+            tally_vouchers = self.parser.parse_vouchers_fetch(xml_response)
+
+            if not tally_vouchers:
+                log.message = f"No {voucher_type_label} vouchers found for period {from_date} to {to_date}."
+                log.save()
+                return 0
+
+            # Real import would map ledgers and stock items here.
+            # For this version, we save the fetch count and raw response for audit.
+            log.status = SyncStatus.SUCCESS
+            log.message = f"Successfully fetched {len(tally_vouchers)} {voucher_type_label} vouchers from Tally."
+            log.records_affected = len(tally_vouchers)
+            log.response_xml = xml_response[:10000] 
+            log.save()
+            return len(tally_vouchers)
+        except Exception as e:
+            log.message = f"Voucher Fetch Error: {str(e)}"
+            log.save()
+            raise

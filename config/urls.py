@@ -77,7 +77,8 @@ urlpatterns = [
 
     # ─── UI AJAX Actions ───
     path('trigger-sync/', trigger_sync_view, name='trigger-sync'),
-    path('retry-sync/<int:log_id>/', retry_sync_log_view, name='retry-sync'),
+    path('retry-sync/<uuid:log_id>/', retry_sync_log_view, name='retry-sync'),
+    path('tally/', include('tally_integration.urls')),
 
     # ─── Admin ───
     path('admin/', admin.site.urls),

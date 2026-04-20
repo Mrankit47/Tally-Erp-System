@@ -7,7 +7,8 @@ Integrated with the voucher system for automated accounting.
 
 from django.db import models
 from django.db.models import Sum
-from core.models import TenantModel
+from core.models import TenantModel, SyncStatus as ModelSyncStatus
+from django.utils import timezone
 
 
 class StockItem(TenantModel):
@@ -26,6 +27,22 @@ class StockItem(TenantModel):
         default=0,
         help_text='Initial stock quantity.'
     )
+
+    # ─── SYNC FIELDS ───
+    sync_status = models.CharField(
+        max_length=20,
+        choices=ModelSyncStatus.choices,
+        default=ModelSyncStatus.PENDING,
+        db_index=True
+    )
+    tally_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='Matching name or ID in Tally ERP'
+    )
+    last_synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Stock Item'

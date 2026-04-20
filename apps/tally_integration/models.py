@@ -47,6 +47,11 @@ class SyncLog(TenantModel):
         default=0,
         help_text='Number of records successfully processed.'
     )
+    synced_ids = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of UUIDs for records created or updated in this sync.'
+    )
 
     class Meta:
         verbose_name = 'Sync Log'

@@ -25,22 +25,121 @@ class TallyXMLGenerator:
     @staticmethod
     def get_fetch_ledger_xml():
         """
-        Returns XML to fetch all Ledger masters from Tally.
+        Returns XML to fetch all Ledger masters from Tally using Collection method.
+        We explicitly fetch NAME, PARENT, and OPENINGBALANCE.
         """
         return """<ENVELOPE>
     <HEADER>
-        <TALLYREQUEST>Export Data</TALLYREQUEST>
+        <VERSION>1</VERSION>
+        <TALLYREQUEST>Export</TALLYREQUEST>
+        <TYPE>COLLECTION</TYPE>
+        <ID>List of Ledgers</ID>
     </HEADER>
     <BODY>
-        <EXPORTDATA>
+        <DESC>
+            <STATICVARIABLES>
+                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+            </STATICVARIABLES>
+            <FETCHLIST>
+                <FETCH>NAME</FETCH>
+                <FETCH>PARENT</FETCH>
+                <FETCH>OPENINGBALANCE</FETCH>
+            </FETCHLIST>
+        </DESC>
+    </BODY>
+</ENVELOPE>"""
+
+    @staticmethod
+    def get_fetch_stock_item_xml():
+        """
+        Returns XML to fetch all Stock Items from Tally using Collection method.
+        """
+        return """<ENVELOPE>
+    <HEADER>
+        <VERSION>1</VERSION>
+        <TALLYREQUEST>Export</TALLYREQUEST>
+        <TYPE>COLLECTION</TYPE>
+        <ID>StockItemsCollection</ID>
+    </HEADER>
+    <BODY>
+        <DESC>
+            <STATICVARIABLES>
+                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+            </STATICVARIABLES>
+            <TDL>
+                <TDLMESSAGE>
+                    <COLLECTION NAME="StockItemsCollection" ISINITIALIZE="Yes">
+                        <TYPE>StockItem</TYPE>
+                        <FETCH>Name, Parent, OpeningBalance, OpeningValue, BaseUnits</FETCH>
+                    </COLLECTION>
+                </TDLMESSAGE>
+            </TDL>
+        </DESC>
+    </BODY>
+</ENVELOPE>"""
+
+    @staticmethod
+    def get_create_stock_item_xml(name, group="Primary", unit="Nos", opening_balance=0, opening_value=0):
+        """
+        Returns XML to create a Stock Item in Tally.
+        """
+        return f"""<ENVELOPE>
+    <HEADER>
+        <TALLYREQUEST>Import Data</TALLYREQUEST>
+    </HEADER>
+    <BODY>
+        <IMPORTDATA>
             <REQUESTDESC>
-                <REPORTNAME>List of Accounts</REPORTNAME>
-                <STATICVARIABLES>
-                    <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-                    <ACCOUNTTYPE>All Ledgers</ACCOUNTTYPE>
-                </STATICVARIABLES>
+                <REPORTNAME>All Masters</REPORTNAME>
             </REQUESTDESC>
-        </EXPORTDATA>
+            <REQUESTDATA>
+                <TALLYMESSAGE xmlns:UDF="TallyUDF">
+                    <STOCKITEM NAME="{name}" ACTION="Create">
+                        <NAME>{name}</NAME>
+                        <PARENT>{group}</PARENT>
+                        <BASEUNITS>{unit}</BASEUNITS>
+                        <OPENINGBALANCE>{opening_balance}</OPENINGBALANCE>
+                        <OPENINGVALUE>{opening_value}</OPENINGVALUE>
+                    </STOCKITEM>
+                </TALLYMESSAGE>
+            </REQUESTDATA>
+        </IMPORTDATA>
+    </BODY>
+</ENVELOPE>"""
+
+    @staticmethod
+    def get_fetch_vouchers_xml(voucher_type, from_date, to_date):
+        """
+        Returns XML to fetch vouchers of a specific type within a date range.
+        Dates should be 'YYYYMMDD' format.
+        """
+        return f"""<ENVELOPE>
+    <HEADER>
+        <VERSION>1</VERSION>
+        <TALLYREQUEST>Export</TALLYREQUEST>
+        <TYPE>COLLECTION</TYPE>
+        <ID>VoucherCollection</ID>
+    </HEADER>
+    <BODY>
+        <DESC>
+            <STATICVARIABLES>
+                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+                <SVFROMDATE TYPE="Date">{from_date}</SVFROMDATE>
+                <SVTODATE TYPE="Date">{to_date}</SVTODATE>
+            </STATICVARIABLES>
+            <TDL>
+                <TDLMESSAGE>
+                    <COLLECTION NAME="VoucherCollection" ISINITIALIZE="Yes">
+                        <TYPE>Voucher</TYPE>
+                        <FILTER>TypeFilter</FILTER>
+                        <FETCH>ALL</FETCH>
+                    </COLLECTION>
+                    <SYSTEM TYPE="FORMULAE" NAME="TypeFilter">
+                        $VoucherTypeName = "{voucher_type}"
+                    </SYSTEM>
+                </TDLMESSAGE>
+            </TDL>
+        </DESC>
     </BODY>
 </ENVELOPE>"""
 
@@ -232,23 +331,97 @@ class TallyXMLParser:
     """
 
     @staticmethod
+    def parse_stock_items(xml_content):
+        """Parses Tally stock items."""
+        try:
+            root = ET.fromstring(xml_content)
+            items = []
+            for item_node in root.iter('STOCKITEM'):
+                name = item_node.get('NAME') or (item_node.find('NAME').text if item_node.find('NAME') is not None else None)
+                if name:
+                    items.append({
+                        'name': name.strip(),
+                        'parent': item_node.findtext('PARENT', 'Primary'),
+                        'opening_balance': Decimal(item_node.findtext('OPENINGBALANCE', '0')),
+                        'unit_of_measure': item_node.findtext('BASEUNITS', 'Nos')
+                    })
+            return items
+        except Exception:
+            return []
+
+    @staticmethod
+    def parse_vouchers_fetch(xml_content):
+        """Parses fetched vouchers from Tally."""
+        try:
+            root = ET.fromstring(xml_content)
+            vouchers = []
+            for v_node in root.iter('VOUCHER'):
+                v_data = {
+                    'date': v_node.findtext('DATE'),
+                    'number': v_node.findtext('VOUCHERNUMBER'),
+                    'party_name': v_node.findtext('PARTYLEDGERNAME'),
+                    'narration': v_node.findtext('NARRATION'),
+                    'entries': []
+                }
+                # Basic Ledger Entries
+                for l_entry in v_node.iter('ALLLEDGERENTRIES.LIST'):
+                    v_data['entries'].append({
+                        'ledger': l_entry.findtext('LEDGERNAME'),
+                        'amount': abs(Decimal(l_entry.findtext('AMOUNT', '0'))),
+                        'is_debit': Decimal(l_entry.findtext('AMOUNT', '0')) < 0
+                    })
+                # Inventory Details
+                for inv_entry in v_node.iter('ALLINVENTORYENTRIES.LIST'):
+                    v_data['entries'].append({
+                        'stock_item': inv_entry.findtext('STOCKITEMNAME'),
+                        'quantity': Decimal(inv_entry.findtext('BILLEDQTY', '0').split(' ')[0] or '0'),
+                        'amount': abs(Decimal(inv_entry.findtext('AMOUNT', '0'))),
+                        'is_debit': Decimal(inv_entry.findtext('AMOUNT', '0')) < 0
+                    })
+                vouchers.append(v_data)
+            return vouchers
+        except Exception:
+            return []
+
+    @staticmethod
     def parse_ledgers(xml_content):
         """
         Parses the 'List of Accounts' response and returns a list of ledger dicts.
+        Handles both attribute-based naming and child-tag naming.
         """
         try:
             root = ET.fromstring(xml_content)
             ledgers = []
 
+            # Tally Returns ledgers in BODY/DATA/COLLECTION/LEDGER
+            # or sometimes direct LEDGER nodes if customized. 
+            # We use iter() for maximum flexibility.
             for ledger_node in root.iter('LEDGER'):
-                name_node = ledger_node.find('NAME')
-                parent_node = ledger_node.find('PARENT')
-                opening_node = ledger_node.find('OPENINGBALANCE')
+                # 1. Check NAME attribute (Modern Tally format)
+                name = ledger_node.get('NAME')
+                
+                # 2. Check child <NAME> or nested <NAME.LIST><NAME>
+                if not name:
+                    name_node = ledger_node.find('NAME')
+                    if name_node is not None:
+                        name = name_node.text
+                    else:
+                        # Fallback: check for <NAME.LIST><NAME>
+                        list_node = ledger_node.find('NAME.LIST')
+                        if list_node is not None:
+                            sub_name = list_node.find('NAME')
+                            if sub_name is not None:
+                                name = sub_name.text
 
-                if name_node is not None:
+                # 3. Handle specific Tally-formatted parents and balances
+                if name:
+                    # Tally sometimes prefixes parents with a space or group prefix
+                    parent_node = ledger_node.find('PARENT')
+                    opening_node = ledger_node.find('OPENINGBALANCE')
+
                     ledgers.append({
-                        'name': name_node.text,
-                        'parent': parent_node.text if parent_node is not None else 'Primary',
+                        'name': name.strip(),
+                        'parent': parent_node.text.strip() if parent_node is not None and parent_node.text else 'Primary',
                         'opening_balance': Decimal(opening_node.text or '0.00') if opening_node is not None else Decimal('0.00')
                     })
             

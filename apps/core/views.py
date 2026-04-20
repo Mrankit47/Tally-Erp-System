@@ -17,6 +17,7 @@ from voucher.models import Voucher, VoucherType, VoucherEntry, EntryType
 from tally_integration.models import SyncLog
 from tally_integration.services import TallySyncService
 from company.models import Company
+from inventory.models import StockItem
 
 
 @login_required
@@ -163,8 +164,37 @@ def trigger_sync_view(request):
 
         if sync_type == 'ledgers':
             count = service.sync_ledgers_from_tally()
-            return JsonResponse({'status': 'success', 'message': f'Successfully synced {count} ledgers.'})
+            return JsonResponse({'status': 'success', 'message': f'Successfully imported {count} ledgers from Tally.'})
         
+        elif sync_type == 'ledgers_push':
+            result = service.push_all_ledgers_to_tally()
+            msg = f"Upload to Tally complete. Success: {result['success']}, Failed: {result['failed']}."
+            return JsonResponse({'status': 'success', 'message': msg})
+        
+        elif sync_type == 'stock_items':
+            count = service.sync_stock_items_from_tally()
+            return JsonResponse({'status': 'success', 'message': f'Successfully imported {count} stock items.'})
+
+        elif sync_type == 'stock_items_push':
+            # Batch push for stock items
+            items = StockItem.objects.filter(company=service.company)
+            success = 0
+            for item in items:
+                if service.push_stock_item_to_tally(item):
+                    success += 1
+            return JsonResponse({'status': 'success', 'message': f'Successfully uploaded {success} items to Tally.'})
+
+        elif sync_type == 'vouchers_fetch':
+             from_date = data.get('from_date')
+             to_date = data.get('to_date')
+             v_type_label = data.get('voucher_type_label', 'Sales') # Default to Sales
+             
+             if not from_date or not to_date:
+                 return JsonResponse({'status': 'error', 'message': 'Date range is required for voucher import.'})
+             
+             count = service.sync_vouchers_from_tally(v_type_label, from_date, to_date)
+             return JsonResponse({'status': 'success', 'message': f'Successfully fetched {count} {v_type_label} vouchers.'})
+
         elif sync_type == 'vouchers':
             result = service.push_all_unsynced_vouchers()
             msg = f"Synced {result['success']} vouchers. Failed: {result['failed']}."
