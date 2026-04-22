@@ -67,7 +67,7 @@
                     <tr class="bg-gray-50/80 text-left">
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Number</th>
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Date</th>
-                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Narration</th>
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Party & Narration</th>
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-right">Amount</th>
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center border-l border-gray-100">ERP Status</th>
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center">Tally Sync</th>
@@ -80,8 +80,11 @@
                             <span class="font-bold text-brand-600">{{ voucher.number }}</span>
                         </td>
                         <td class="px-6 py-4 text-gray-600">{{ voucher.date | date:"d M Y" }}</td>
-                        <td class="px-6 py-4 text-gray-500 max-w-xs truncate">
-                            {{ voucher.narration|default:"—" }}
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-gray-900">{{ voucher.party_name|default:"—" }}</div>
+                            <div class="text-xs text-gray-500 mt-0.5 max-w-xs truncate" title="{{ voucher.narration }}">
+                                {{ voucher.narration|default:"" }}
+                            </div>
                         </td>
                         <td class="px-6 py-4 text-right font-semibold text-gray-900">
                             {{ voucher.total_amount | indian_currency }}

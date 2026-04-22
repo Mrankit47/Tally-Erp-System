@@ -24,7 +24,7 @@ def stock_item_list_view(request):
     
     # Using generic select_related, and relying on current_quantity property. 
     # For large datasets we would annotate this in the DB, but property is fine for initial MVP.
-    items_qs = StockItem.objects.filter(company=company)
+    items_qs = StockItem.objects.filter(company=company).select_related('group').order_by('group__name', 'name')
     
     paginator = Paginator(items_qs, 20)
     page_number = request.GET.get('page')

@@ -11,11 +11,60 @@ from core.models import TenantModel, SyncStatus as ModelSyncStatus
 from django.utils import timezone
 
 
+class StockGroup(TenantModel):
+    """
+    Hierarchical categories for stock items (e.g., Beverages, Grocery Items).
+    Maps to Tally's Stock Group collection.
+    """
+    name = models.CharField(max_length=255)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text='Parent stock group for nested categories.'
+    )
+    
+    # ─── SYNC FIELDS ───
+    sync_status = models.CharField(
+        max_length=20,
+        choices=ModelSyncStatus.choices,
+        default=ModelSyncStatus.PENDING,
+        db_index=True
+    )
+    tally_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='Matching name or ID in Tally ERP'
+    )
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Stock Group'
+        verbose_name_plural = 'Stock Groups'
+        unique_together = ['company', 'name']
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.company.name})"
+
+
 class StockItem(TenantModel):
     """
     Items or products managed in the inventory.
     """
     name = models.CharField(max_length=255)
+    group = models.ForeignKey(
+        StockGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='items',
+        help_text='Category or group this item belongs to.'
+    )
     unit_of_measure = models.CharField(
         max_length=50,
         default='Nos',

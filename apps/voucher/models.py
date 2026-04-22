@@ -64,6 +64,12 @@ class Voucher(TenantModel):
         blank=True,
         help_text='General comments for this transaction.'
     )
+    party_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='Name of the associated party (Customer, Vendor, etc.)'
+    )
     is_posted = models.BooleanField(
         default=False,
         db_index=True,

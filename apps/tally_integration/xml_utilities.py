@@ -26,25 +26,28 @@ class TallyXMLGenerator:
     def get_fetch_ledger_xml():
         """
         Returns XML to fetch all Ledger masters from Tally using Collection method.
-        We explicitly fetch NAME, PARENT, and OPENINGBALANCE.
+        We explicitly fetch Name, Parent, and OpeningBalance.
         """
         return """<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
         <TALLYREQUEST>Export</TALLYREQUEST>
         <TYPE>COLLECTION</TYPE>
-        <ID>List of Ledgers</ID>
+        <ID>LedgersCollection</ID>
     </HEADER>
     <BODY>
         <DESC>
             <STATICVARIABLES>
                 <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
             </STATICVARIABLES>
-            <FETCHLIST>
-                <FETCH>NAME</FETCH>
-                <FETCH>PARENT</FETCH>
-                <FETCH>OPENINGBALANCE</FETCH>
-            </FETCHLIST>
+            <TDL>
+                <TDLMESSAGE>
+                    <COLLECTION NAME="LedgersCollection" ISINITIALIZE="Yes">
+                        <TYPE>Ledger</TYPE>
+                        <FETCH>Name, Parent, OpeningBalance</FETCH>
+                    </COLLECTION>
+                </TDLMESSAGE>
+            </TDL>
         </DESC>
     </BODY>
 </ENVELOPE>"""
@@ -132,7 +135,7 @@ class TallyXMLGenerator:
                     <COLLECTION NAME="VoucherCollection" ISINITIALIZE="Yes">
                         <TYPE>Voucher</TYPE>
                         <FILTER>TypeFilter</FILTER>
-                        <FETCH>ALL</FETCH>
+                        <FETCH>*, AllLedgerEntries.*, AllInventoryEntries.*, LedgerEntries.*, AccountingAllocations.*</FETCH>
                     </COLLECTION>
                     <SYSTEM TYPE="FORMULAE" NAME="TypeFilter">
                         $VoucherTypeName = "{voucher_type}"
@@ -331,18 +334,38 @@ class TallyXMLParser:
     """
 
     @staticmethod
+    def sanitize_xml(xml_string):
+        """Removes invalid XML control characters that cause ET.fromstring to crash.
+        Handles both raw control chars and XML-encoded references like &#4;
+        """
+        if not xml_string:
+            return ""
+        import re
+        # 1. Remove XML-encoded control character references (&#0; through &#31; except &#9;, &#10;, &#13;)
+        xml_string = re.sub(r'&#(?:0*[0-8]|0*1[0-2]|0*1[4-9]|0*2[0-9]|0*3[01]);', '', xml_string)
+        # 2. Remove raw control characters
+        xml_string = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', xml_string)
+        return xml_string
+
+    @staticmethod
     def parse_stock_items(xml_content):
         """Parses Tally stock items."""
         try:
+            xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
             items = []
             for item_node in root.iter('STOCKITEM'):
                 name = item_node.get('NAME') or (item_node.find('NAME').text if item_node.find('NAME') is not None else None)
                 if name:
+                    opening_str = item_node.findtext('OPENINGBALANCE', '0').strip()
+                    numeric_part = opening_str.split(' ')[0] if opening_str else '0'
+                    if not numeric_part: 
+                        numeric_part = '0'
+                        
                     items.append({
                         'name': name.strip(),
-                        'parent': item_node.findtext('PARENT', 'Primary'),
-                        'opening_balance': Decimal(item_node.findtext('OPENINGBALANCE', '0')),
+                        'parent': item_node.findtext('PARENT', 'Primary').strip(),
+                        'opening_balance': Decimal(numeric_part),
                         'unit_of_measure': item_node.findtext('BASEUNITS', 'Nos')
                     })
             return items
@@ -353,27 +376,40 @@ class TallyXMLParser:
     def parse_vouchers_fetch(xml_content):
         """Parses fetched vouchers from Tally."""
         try:
+            xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
             vouchers = []
             for v_node in root.iter('VOUCHER'):
+                number = v_node.findtext('VOUCHERNUMBER')
+                if not number:
+                    continue
+                    
                 v_data = {
                     'date': v_node.findtext('DATE'),
-                    'number': v_node.findtext('VOUCHERNUMBER'),
+                    'number': number,
                     'party_name': v_node.findtext('PARTYLEDGERNAME'),
                     'narration': v_node.findtext('NARRATION'),
                     'entries': []
                 }
                 # Basic Ledger Entries
                 for l_entry in v_node.iter('ALLLEDGERENTRIES.LIST'):
+                    ledger_name = l_entry.findtext('LEDGERNAME')
+                    if not ledger_name:
+                        continue
+                        
                     v_data['entries'].append({
-                        'ledger': l_entry.findtext('LEDGERNAME'),
+                        'ledger': ledger_name,
                         'amount': abs(Decimal(l_entry.findtext('AMOUNT', '0'))),
                         'is_debit': Decimal(l_entry.findtext('AMOUNT', '0')) < 0
                     })
                 # Inventory Details
                 for inv_entry in v_node.iter('ALLINVENTORYENTRIES.LIST'):
+                    stock_item = inv_entry.findtext('STOCKITEMNAME')
+                    if not stock_item:
+                        continue
+                        
                     v_data['entries'].append({
-                        'stock_item': inv_entry.findtext('STOCKITEMNAME'),
+                        'stock_item': stock_item,
                         'quantity': Decimal(inv_entry.findtext('BILLEDQTY', '0').split(' ')[0] or '0'),
                         'amount': abs(Decimal(inv_entry.findtext('AMOUNT', '0'))),
                         'is_debit': Decimal(inv_entry.findtext('AMOUNT', '0')) < 0
@@ -390,6 +426,7 @@ class TallyXMLParser:
         Handles both attribute-based naming and child-tag naming.
         """
         try:
+            xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
             ledgers = []
 
@@ -437,6 +474,7 @@ class TallyXMLParser:
         Captures <LINEERROR>, <ERROR>, and <ERRORMSG> tags.
         """
         try:
+            xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
             error_tags = ('LINEERROR', 'ERROR', 'ERRORMSG')
             errors = [
@@ -454,6 +492,7 @@ class TallyXMLParser:
         Looks for <CREATED>1</CREATED> in the response.
         """
         try:
+            xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
             created_node = root.find('.//CREATED')
             return created_node is not None and created_node.text == '1'
@@ -470,6 +509,7 @@ class TallyXMLParser:
         """
         stats = {'created': 0, 'altered': 0, 'deleted': 0, 'errors': 0}
         try:
+            xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
             for key in stats:
                 node = root.find(f'.//{key.upper()}')

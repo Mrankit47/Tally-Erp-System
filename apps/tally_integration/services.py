@@ -6,6 +6,7 @@ transactional safety and detailed auditing via SyncLog.
 """
 
 import time
+import datetime
 from decimal import Decimal
 from django.db import transaction
 from django.db.models import Sum
@@ -15,8 +16,8 @@ from .client import TallyClient, TallyClientError
 from .xml_utilities import TallyXMLGenerator, TallyXMLParser
 from .models import SyncLog, SyncOperation, SyncStatus
 from ledger.models import Ledger, LedgerGroup
-from inventory.models import StockItem
-from voucher.models import Voucher, VoucherType, EntryType
+from inventory.models import StockItem, StockTransaction, TransactionType, StockGroup
+from voucher.models import Voucher, VoucherEntry, VoucherType, EntryType
 from core.models import SyncStatus as ModelSyncStatus
 
 import logging
@@ -141,14 +142,30 @@ class TallySyncService:
                 log.save()
                 return 0
 
+            default_group, _ = StockGroup.objects.get_or_create(
+                company=self.company,
+                name='Primary',
+                defaults={'created_by': self.user}
+            )
+
             success_count = 0
             synced_record_ids = []
             for item in tally_items:
+                # 1. Handle Group recursively map
+                group, _ = StockGroup.objects.get_or_create(
+                    company=self.company,
+                    name=item['parent'],
+                    defaults={'created_by': self.user, 'parent': default_group}
+                )
+
+                # 2. Handle Stock Item
                 si, _ = StockItem.objects.update_or_create(
                     company=self.company,
                     name=item['name'],
                     defaults={
+                        'group': group,
                         'unit_of_measure': item['unit_of_measure'],
+                        'opening_stock_qty': item['opening_balance'],
                         'tally_id': item['name'],
                         'sync_status': ModelSyncStatus.SYNCED,
                         'last_synced_at': timezone.now(),
@@ -520,9 +537,8 @@ class TallySyncService:
     @transaction.atomic
     def sync_vouchers_from_tally(self, voucher_type_label, from_date, to_date):
         """
-        Fetches vouchers from Tally and records them in the SyncLog.
-        Dumb Import: We log the data for Audit.
-        In a production environment, this would create local Voucher objects.
+        Fetches vouchers from Tally and creates them locally.
+        Ensures Ledgers and StockItems exist.
         """
         log = SyncLog.objects.create(
             company=self.company,
@@ -532,6 +548,21 @@ class TallySyncService:
             status=SyncStatus.FAILED
         )
         try:
+            # Map UI label to VoucherType
+            type_map = {
+                'sales': VoucherType.SALES,
+                'payments': VoucherType.PAYMENT,
+                'payment': VoucherType.PAYMENT,
+                'receipts': VoucherType.RECEIPT,
+                'receipt': VoucherType.RECEIPT,
+                'contra': VoucherType.CONTRA,
+                'journal': VoucherType.JOURNAL,
+                'purchase': VoucherType.PURCHASE
+            }
+            target_type = type_map.get(voucher_type_label.lower())
+            if not target_type:
+                raise ValueError(f"Unknown voucher type: {voucher_type_label}")
+
             # Format dates to YYYYMMDD
             fd = from_date.replace('-', '').replace('/', '')
             td = to_date.replace('-', '').replace('/', '')
@@ -549,14 +580,140 @@ class TallySyncService:
                 log.save()
                 return 0
 
-            # Real import would map ledgers and stock items here.
-            # For this version, we save the fetch count and raw response for audit.
+            primary_group, _ = LedgerGroup.objects.get_or_create(
+                company=self.company,
+                name='Primary',
+                defaults={'created_by': self.user}
+            )
+
+            success_count = 0
+            synced_record_ids = []
+
+            for v_data in tally_vouchers:
+                # 1. Parse Date
+                v_date_str = v_data.get('date', '')
+                if v_date_str and len(v_date_str) == 8:
+                    try:
+                        v_date = datetime.datetime.strptime(v_date_str, '%Y%m%d').date()
+                    except ValueError:
+                        v_date = timezone.now().date()
+                else:
+                    v_date = timezone.now().date()
+
+                vid = v_data.get('number')
+                if not vid:
+                    continue  # Skip if no voucher number
+
+                # 2. Create or Update Voucher
+                voucher, created = Voucher.objects.update_or_create(
+                    company=self.company,
+                    tally_id=vid,
+                    defaults={
+                        'number': vid,
+                        'date': v_date,
+                        'voucher_type': target_type,
+                        'narration': v_data.get('narration') or '',
+                        'party_name': v_data.get('party_name') or '',
+                        'is_posted': True,
+                        'sync_status': ModelSyncStatus.SYNCED,
+                        'last_synced_at': timezone.now(),
+                        'updated_by': self.user,
+                    }
+                )
+                
+                # If creating, set created_by
+                if created:
+                    voucher.created_by = self.user
+                    voucher.save(update_fields=['created_by'])
+
+                synced_record_ids.append(str(voucher.id))
+
+                # Clear old entries and stock transactions if updating
+                if not created:
+                    voucher.entries.all().delete()
+
+                # 3. Create Entries
+                for e_data in v_data.get('entries', []):
+                    # Resolve Ledger
+                    ledger_name = e_data.get('ledger') or 'Suspense A/C'
+                    ledger, _ = Ledger.objects.get_or_create(
+                        company=self.company,
+                        name=ledger_name,
+                        defaults={
+                            'group': primary_group,
+                            'sync_status': ModelSyncStatus.PENDING,
+                            'created_by': self.user,
+                        }
+                    )
+
+                    # Resolve Stock Item
+                    stock_item_name = e_data.get('stock_item')
+                    stock_item = None
+                    if stock_item_name:
+                        stock_item, _ = StockItem.objects.get_or_create(
+                            company=self.company,
+                            name=stock_item_name,
+                            defaults={
+                                'sync_status': ModelSyncStatus.PENDING,
+                                'created_by': self.user,
+                            }
+                        )
+
+                    entry_type = EntryType.DEBIT if e_data.get('is_debit') else EntryType.CREDIT
+
+                    # Create VoucherEntry
+                    entry = VoucherEntry.objects.create(
+                        company=self.company,
+                        voucher=voucher,
+                        ledger=ledger,
+                        amount=e_data.get('amount') or Decimal('0.00'),
+                        entry_type=entry_type,
+                        stock_item=stock_item,
+                        quantity=e_data.get('quantity'),
+                        # Note: Rate could be calculated if amount / quantity is available,
+                        # but Tally fetch might not provide it reliably in this list
+                        rate=Decimal(e_data.get('amount')) / Decimal(e_data.get('quantity')) if e_data.get('quantity') and Decimal(e_data.get('quantity')) > 0 else None,
+                        created_by=self.user,
+                        updated_by=self.user
+                    )
+
+                    # 4. Create StockTransaction
+                    if stock_item:
+                        tx_type = TransactionType.OUT if target_type == VoucherType.SALES else TransactionType.IN
+                        StockTransaction.objects.create(
+                            company=self.company,
+                            stock_item=stock_item,
+                            voucher_entry=entry,
+                            quantity=entry.quantity or Decimal('0.00'),
+                            rate=entry.rate or Decimal('0.00'),
+                            transaction_type=tx_type,
+                            created_by=self.user,
+                            updated_by=self.user
+                        )
+
+                # Compute party_name if missing from PARTYLEDGERNAME (common in Tally for general vouchers)
+                if not voucher.party_name:
+                    party_entry = None
+                    if target_type == VoucherType.SALES:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.DEBIT).first()
+                    elif target_type == VoucherType.RECEIPT:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.CREDIT).first()
+                    elif target_type == VoucherType.PAYMENT:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.DEBIT).first()
+                    
+                    if party_entry:
+                        voucher.party_name = party_entry.ledger.name
+                        voucher.save(update_fields=['party_name'])
+
+                success_count += 1
+
             log.status = SyncStatus.SUCCESS
-            log.message = f"Successfully fetched {len(tally_vouchers)} {voucher_type_label} vouchers from Tally."
-            log.records_affected = len(tally_vouchers)
-            log.response_xml = xml_response[:10000] 
+            log.message = f"Successfully synchronized {success_count} {voucher_type_label} vouchers from Tally."
+            log.records_affected = success_count
+            log.synced_ids = synced_record_ids
             log.save()
-            return len(tally_vouchers)
+            
+            return success_count
         except Exception as e:
             log.message = f"Voucher Fetch Error: {str(e)}"
             log.save()

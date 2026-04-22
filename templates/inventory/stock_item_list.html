@@ -96,21 +96,36 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50 text-sm font-medium">
-                    {% for item in items %}
-                    <tr class="hover:bg-gray-50/50 transition-colors group">
-                        <td class="px-6 py-4">
-                            <span class="text-gray-900 font-bold ml-1">{{ item.name }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-gray-500">
-                            {{ item.unit_of_measure }}
-                        </td>
-                        <td class="px-6 py-4 text-right text-gray-500">
-                            {{ item.opening_stock_qty|floatformat:"2" }}
-                        </td>
-                        <td class="px-6 py-4 text-right font-bold {% if item.current_quantity > 0 %}text-emerald-600{% elif item.current_quantity < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
-                            {{ item.current_quantity|floatformat:"2" }}
-                        </td>
-                    </tr>
+                    {% regroup items by group as grouped_items %}
+                    
+                    {% for group in grouped_items %}
+                        <!-- Category Header -->
+                        <tr class="bg-brand-50/50">
+                            <td colspan="4" class="px-6 py-3 border-b border-brand-100">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                                    <span class="text-brand-900 font-bold uppercase tracking-wider text-xs">{{ group.grouper.name|default:"Uncategorized (Primary)" }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Items in Category -->
+                        {% for item in group.list %}
+                        <tr class="hover:bg-gray-50/50 transition-colors group">
+                            <td class="px-6 py-3 pl-10 border-l border-brand-100/30">
+                                <span class="text-gray-900 font-bold">{{ item.name }}</span>
+                            </td>
+                            <td class="px-6 py-3 text-gray-500">
+                                {{ item.unit_of_measure }}
+                            </td>
+                            <td class="px-6 py-3 text-right text-gray-500">
+                                {{ item.opening_stock_qty|floatformat:"2" }}
+                            </td>
+                            <td class="px-6 py-3 text-right font-bold {% if item.current_quantity > 0 %}text-emerald-600{% elif item.current_quantity < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
+                                {{ item.current_quantity|floatformat:"2" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
                     {% empty %}
                     <tr>
                         <td colspan="4" class="px-6 py-16 text-center">
@@ -118,7 +133,7 @@
                                 <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                             </div>
                             <h3 class="text-sm font-bold text-gray-900 mb-1">No stock items found</h3>
-                            <p class="text-xs text-gray-500">Get started by creating your first product or inventory item.</p>
+                            <p class="text-xs text-gray-500">Get started by linking your first product to Tally.</p>
                             <a href="{% url 'inventory_create' %}" class="mt-4 inline-flex items-center text-xs font-bold text-brand-600 hover:text-brand-700">
                                 Create Stock Item <span aria-hidden="true" class="ml-1">&rarr;</span>
                             </a>
