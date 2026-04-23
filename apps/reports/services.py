@@ -9,20 +9,28 @@ from django.db.models import Sum
 from ledger.models import Ledger, LedgerGroup
 from voucher.models import VoucherEntry, EntryType
 
-def get_ledger_category(root_group_name):
+def get_ledger_category(group, group_map):
     """
-    Categorizes the Tally top-level group into Asset, Liability, Income, or Expense.
+    Determines the category (Asset, Liability, Income, Expense) by walking up the 
+    group hierarchy until a keyword match is found.
     """
-    root = root_group_name.lower()
-    if 'income' in root or 'sales' in root:
-        return 'Income'
-    elif 'expense' in root or 'purchase' in root:
-        return 'Expenses'
-    elif 'liabilit' in root or 'capital' in root or 'loan' in root or 'suspense' in root or 'branch' in root:
-        return 'Liabilities'
-    else:
-        # Fallback to Assets (Current Assets, Fixed Assets, Investments etc.)
-        return 'Assets'
+    current = group
+    while current:
+        name = current.name.lower()
+        if 'income' in name or 'sales' in name:
+            return 'Income'
+        if 'expense' in name or 'purchase' in name:
+            return 'Expenses'
+        if 'liabilit' in name or 'capital' in name or 'loan' in name or 'suspense' in name or 'branch' in name or 'creditor' in name:
+            return 'Liabilities'
+        if 'asset' in name or 'bank' in name or 'cash' in name or 'investment' in name or 'debtor' in name:
+            return 'Assets'
+            
+        if not current.parent_id:
+            break
+        current = group_map.get(current.parent_id)
+        
+    return 'Assets' # Final fallback
 
 def generate_trial_balance(company):
     """
@@ -66,9 +74,7 @@ def generate_trial_balance(company):
     total_credit = Decimal('0.00')
 
     for ledger in ledgers:
-        root_group = get_root_group_mem(ledger.group_id)
-        root_name = root_group.name if root_group else "Unknown"
-        category = get_ledger_category(root_name)
+        category = get_ledger_category(ledger.group, group_map)
         
         # Calculate dynamic balance manually from our agg cache
         totals = ledger_totals.get(ledger.id, {'debit': Decimal('0.00'), 'credit': Decimal('0.00')})
@@ -167,10 +173,7 @@ def get_top_expenses(company, limit=5):
 
     expenses_list = []
     for ledger in ledgers:
-        root_group = get_root_group_mem(ledger.group_id)
-        root_name = root_group.name if root_group else "Unknown"
-        
-        if get_ledger_category(root_name) == 'Expenses':
+        if get_ledger_category(ledger.group, group_map) == 'Expenses':
             dr_total = debit_totals.get(ledger.id, Decimal('0.00'))
             if dr_total > 0:
                 expenses_list.append({

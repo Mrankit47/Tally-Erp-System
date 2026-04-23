@@ -7,7 +7,123 @@ Integrated with the voucher system for automated accounting.
 
 from django.db import models
 from django.db.models import Sum
-from core.models import TenantModel
+from core.models import TenantModel, SyncStatus as ModelSyncStatus
+from django.utils import timezone
+
+
+class StockGroup(TenantModel):
+    """
+    Hierarchical categories for stock items (e.g., Beverages, Grocery Items).
+    Maps to Tally's Stock Group collection.
+    """
+    name = models.CharField(max_length=255)
+    alias = models.CharField(max_length=255, blank=True, null=True, help_text='Alternative name for the group.')
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text='Parent stock group for nested categories.'
+    )
+    
+    # ─── SYNC FIELDS ───
+    sync_status = models.CharField(
+        max_length=20,
+        choices=ModelSyncStatus.choices,
+        default=ModelSyncStatus.PENDING,
+        db_index=True
+    )
+    tally_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='Matching name or ID in Tally ERP'
+    )
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Stock Group'
+        verbose_name_plural = 'Stock Groups'
+        unique_together = ['company', 'name']
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.company.name})"
+
+
+class StockCategory(TenantModel):
+    """
+    Parallel classification for stock items.
+    Allows multi-dimensional analysis (e.g., categorizing by 'Brand' across different 'Groups').
+    """
+    name = models.CharField(max_length=255)
+    alias = models.CharField(max_length=255, blank=True, null=True, help_text='Alternative name for the category.')
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text='Parent stock category for nested categories.'
+    )
+
+    class Meta:
+        verbose_name = 'Stock Category'
+        verbose_name_plural = 'Stock Categories'
+        unique_together = ['company', 'name']
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.company.name})"
+
+
+class Unit(TenantModel):
+    """
+    Unit of Measure Master (e.g., Nos, Kgs, Pcs).
+    """
+    symbol = models.CharField(max_length=20, help_text='Short name (e.g., Kgs)')
+    formal_name = models.CharField(max_length=100, help_text='Full name (e.g., Kilograms)')
+    decimal_places = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Number of decimal places allowed for quantities.'
+    )
+
+    class Meta:
+        verbose_name = 'Unit'
+        verbose_name_plural = 'Units'
+        unique_together = ['company', 'symbol']
+        ordering = ['formal_name']
+
+    def __str__(self):
+        return f"{self.formal_name} ({self.symbol})"
+
+
+class Location(TenantModel):
+    """
+    Godown / Location Master.
+    Where stock is physically stored.
+    """
+    name = models.CharField(max_length=255)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text='Parent godown/location.'
+    )
+    address = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Location (Godown)'
+        verbose_name_plural = 'Locations (Godowns)'
+        unique_together = ['company', 'name']
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.company.name})"
 
 
 class StockItem(TenantModel):
@@ -15,10 +131,36 @@ class StockItem(TenantModel):
     Items or products managed in the inventory.
     """
     name = models.CharField(max_length=255)
+    group = models.ForeignKey(
+        StockGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='items',
+        help_text='Category or group this item belongs to.'
+    )
+    category = models.ForeignKey(
+        StockCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='items',
+        help_text='Secondary classification (e.g., Brand).'
+    )
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='items',
+        help_text='Primary Unit of Measure.'
+    )
+    # Legacy field, kept for safety during transition
     unit_of_measure = models.CharField(
         max_length=50,
-        default='Nos',
-        help_text='e.g., Kgs, Pcs, Nos.'
+        blank=True,
+        null=True,
+        help_text='Legacy text-based UoM. Use unit instead.'
     )
     opening_stock_qty = models.DecimalField(
         max_digits=20,
@@ -26,6 +168,28 @@ class StockItem(TenantModel):
         default=0,
         help_text='Initial stock quantity.'
     )
+    closing_stock_qty = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        help_text='Current/closing stock quantity from Tally sync.'
+    )
+
+    # ─── SYNC FIELDS ───
+    sync_status = models.CharField(
+        max_length=20,
+        choices=ModelSyncStatus.choices,
+        default=ModelSyncStatus.PENDING,
+        db_index=True
+    )
+    tally_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='Matching name or ID in Tally ERP'
+    )
+    last_synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Stock Item'
@@ -40,7 +204,8 @@ class StockItem(TenantModel):
     def current_quantity(self):
         """
         Dynamically calculate stock quantity.
-        Stock = Opening + Sum(IN) - Sum(OUT)
+        If closing_stock_qty was synced from Tally and no local transactions exist,
+        use that directly. Otherwise compute: Opening + IN - OUT.
         """
         from .models import TransactionType
         
@@ -48,7 +213,11 @@ class StockItem(TenantModel):
         ins = txs.filter(transaction_type=TransactionType.IN).aggregate(total=Sum('quantity'))['total'] or 0
         outs = txs.filter(transaction_type=TransactionType.OUT).aggregate(total=Sum('quantity'))['total'] or 0
         
-        return self.opening_stock_qty + ins - outs
+        local_movement = ins - outs
+        if local_movement == 0 and self.closing_stock_qty > 0:
+            return self.closing_stock_qty
+        
+        return self.opening_stock_qty + local_movement
 
 
 class TransactionType(models.TextChoices):
@@ -65,6 +234,14 @@ class StockTransaction(TenantModel):
         StockItem,
         on_delete=models.CASCADE,
         related_name='transactions'
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='transactions',
+        help_text='Godown/Location where this transaction occurred.'
     )
     voucher_entry = models.ForeignKey(
         'voucher.VoucherEntry',

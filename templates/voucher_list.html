@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% load currency_tags %}
+
+{% block title %}{{ voucher_type_label }} List{% endblock %}
+{% block page_title %}{{ voucher_type_label }} Transactions{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">{{ voucher_type_label }} Overview</h2>
+            <p class="mt-1 text-sm text-gray-500">Showing all {{ voucher_type_label | lower }} records for {{ company.name }}.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- ─── IMPORT BUTTON ─── -->
+            <button id="import-tally-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm font-semibold text-blue-600 hover:bg-blue-100 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Import from Tally
+            </button>
+
+            <button id="bulk-sync-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm font-semibold text-indigo-600 hover:bg-indigo-100 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Push to Tally
+            </button>
+            <a href="{% url active_page|add:'_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 border border-transparent rounded-lg text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                New {{ voucher_type_label }}
+            </a>
+        </div>
+    </div>
+
+    <!-- ─── IMPORT DATE MODAL ─── -->
+    <div id="import-modal" class="hidden fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+            <div class="px-8 py-6 bg-brand-600 text-white">
+                <h3 class="text-xl font-bold">Import {{ voucher_type_label }} Vouchers</h3>
+                <p class="text-brand-100 text-xs mt-1">Select a 30-day range to pull data from Tally.</p>
+            </div>
+            <div class="p-8 space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">From Date</label>
+                        <input type="date" id="import-from-date" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">To Date</label>
+                        <input type="date" id="import-to-date" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button id="close-modal-btn" class="flex-1 px-4 py-3 bg-gray-50 text-gray-500 font-bold rounded-2xl hover:bg-gray-100 transition-all">Cancel</button>
+                    <button id="confirm-import-btn" class="flex-1 px-4 py-3 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 shadow-lg shadow-brand-200 transition-all">Start Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ LIST CONTAINER ═══════════ -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">
+        
+        {% if vouchers %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50/80 text-left">
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Number</th>
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Party & Narration</th>
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-right">Amount</th>
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center border-l border-gray-100">ERP Status</th>
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center">Tally Sync</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for voucher in vouchers %}
+                    <tr class="hover:bg-gray-50/50 transition-colors group">
+                        <td class="px-6 py-4">
+                            <span class="font-bold text-brand-600">{{ voucher.number }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-600">{{ voucher.date | date:"d M Y" }}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-gray-900">{{ voucher.party_name|default:"—" }}</div>
+                            <div class="text-xs text-gray-500 mt-0.5 max-w-xs truncate" title="{{ voucher.narration }}">
+                                {{ voucher.narration|default:"" }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-right font-semibold text-gray-900">
+                            {{ voucher.total_amount | indian_currency }}
+                        </td>
+                        <td class="px-6 py-4 text-center border-l border-gray-50">
+                            {% if voucher.is_posted %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                                POSTED
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                                <span class="w-1 h-1 rounded-full bg-amber-500"></span>
+                                DRAFT
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if voucher.sync_status == 'SYNCED' %}
+                                <div class="flex items-center justify-center gap-2 text-emerald-600 font-bold text-[10px] uppercase">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Synced
+                                </div>
+                            {% elif voucher.sync_status == 'FAILED' %}
+                                <div class="flex flex-col items-center gap-1">
+                                    <button class="push-tally-btn inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold border border-red-100 hover:bg-red-100 transition-all" data-id="{{ voucher.id }}">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                        RETRY
+                                    </button>
+                                </div>
+                            {% else %}
+                                <button class="push-tally-btn inline-flex items-center gap-1 px-3 py-1 bg-gray-50 text-gray-600 rounded-lg text-[10px] font-bold border border-gray-100 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 transition-all" data-id="{{ voucher.id }}">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    PUSH
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ═══════════ PAGINATION ═══════════ -->
+        {% if vouchers.has_other_pages %}
+        <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-center gap-2">
+            {% if vouchers.has_previous %}
+            <a href="?page={{ vouchers.previous_page_number }}" class="p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all text-gray-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </a>
+            {% endif %}
+            
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest px-4">
+                Page {{ vouchers.number }} of {{ vouchers.paginator.num_pages }}
+            </span>
+
+            {% if vouchers.has_next %}
+            <a href="?page={{ vouchers.next_page_number }}" class="p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all text-gray-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- ═══════════ EMPTY STATE ═══════════ -->
+        <div class="px-6 py-20 text-center">
+            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">No {{ voucher_type_label | lower }} found</h3>
+            <p class="text-gray-500 max-w-sm mx-auto mb-8">
+                Your company hasn't recorded any {{ voucher_type_label | lower }} transactions yet. Start by adding a new one or sync with Tally.
+            </p>
+            <button class="inline-flex items-center gap-2 px-6 py-2.5 bg-brand-600 rounded-xl text-sm font-bold text-white shadow-lg shadow-brand-200 hover:bg-brand-700 hover:-translate-y-0.5 transition-all">
+                Create First {{ voucher_type_label }}
+            </button>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+    <script>
+        // Shared Headers for AJAX
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        };
+
+        // ─── Bulk Sync Handler ───
+        document.getElementById('bulk-sync-btn')?.addEventListener('click', async function() {
+            const btn = this;
+            const originalContent = btn.innerHTML;
+            
+            if (!confirm('Push all unsynced vouchers to Tally ERP?')) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Syncing...`;
+
+            try {
+                const response = await fetch('{% url "trigger-sync" %}', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ type: 'vouchers' })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('Sync Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Connection Error: Could not reach the ERP server.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        });
+
+        // ─── Individual Push Handler ───
+        document.querySelectorAll('.push-tally-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const voucherId = this.dataset.id;
+                const originalContent = this.innerHTML;
+                
+                this.disabled = true;
+                this.innerHTML = `<svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>`;
+
+                try {
+                    const response = await fetch(`/api/v1/tally/sync/voucher/${voucherId}/`, {
+                        method: 'POST',
+                        headers: headers
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok && data.status === 'success') {
+                        window.location.reload();
+                    } else {
+                        alert('Tally Sync Error: ' + (data.message || 'Unknown server error'));
+                    }
+                } catch (err) {
+                    alert('Connection Error: Could not reach the ERP server. Please ensure the backend is running.');
+                } finally {
+                    this.disabled = false;
+                    this.innerHTML = originalContent;
+                }
+            });
+        });
+        // ─── Import Modal Handlers ───
+        const importModal = document.getElementById('import-modal');
+        const openModalBtn = document.getElementById('import-tally-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const confirmImportBtn = document.getElementById('confirm-import-btn');
+
+        openModalBtn?.addEventListener('click', () => {
+            importModal.classList.remove('hidden');
+        });
+
+        closeModalBtn?.addEventListener('click', () => {
+            importModal.classList.add('hidden');
+        });
+
+        confirmImportBtn?.addEventListener('click', async function() {
+            const fromDate = document.getElementById('import-from-date').value;
+            const toDate = document.getElementById('import-to-date').value;
+            const btn = this;
+
+            if (!fromDate || !toDate) {
+                alert('Please select both From and To dates.');
+                return;
+            }
+
+            // 30-day range check
+            const start = new Date(fromDate);
+            const end = new Date(toDate);
+            const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) {
+                alert('To Date must be after From Date.');
+                return;
+            }
+            if (diffDays > 31) {
+                alert('Maximum allowed range is 30 days. Please select a shorter period.');
+                return;
+            }
+
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="w-4 h-4 animate-spin inline-block mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4m2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Importing...`;
+
+            try {
+                const response = await fetch('{% url "trigger-sync" %}', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ 
+                        type: 'vouchers_fetch',
+                        from_date: fromDate,
+                        to_date: toDate,
+                        voucher_type_label: '{{ voucher_type_label }}'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(data.message + "\nCheck Sync Logs for detailed results.");
+                    window.location.reload();
+                } else {
+                    alert('Import Error: ' + data.message);
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                }
+            } catch (err) {
+                alert('Connection Error: Could not reach server.');
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        });
+    </script>
+{% endblock %}

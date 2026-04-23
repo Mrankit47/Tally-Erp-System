@@ -6,6 +6,7 @@ Handles financial transactions, ensuring double-entry integrity
 and sequential document numbering.
 """
 
+from decimal import Decimal
 from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -26,6 +27,38 @@ class EntryType(models.TextChoices):
     """Debit or Credit indicator."""
     DEBIT = 'DR', 'Debit'
     CREDIT = 'CR', 'Credit'
+
+
+class CustomVoucherType(TenantModel):
+    """
+    User-defined Voucher Types (e.g., 'Export Sales', 'Bank Receipt').
+    Inherits behavioral logic from the base VoucherType.
+    """
+    name = models.CharField(max_length=255)
+    parent_type = models.CharField(
+        max_length=20,
+        choices=VoucherType.choices,
+        help_text='Base system behavior to inherit (e.g., SALES, PURCHASE).'
+    )
+    is_active = models.BooleanField(default=True)
+    method_of_numbering = models.CharField(
+        max_length=50,
+        choices=[
+            ('Automatic', 'Automatic'),
+            ('Manual', 'Manual'),
+            ('None', 'None')
+        ],
+        default='Automatic'
+    )
+
+    class Meta:
+        verbose_name = 'Custom Voucher Type'
+        verbose_name_plural = 'Custom Voucher Types'
+        unique_together = ['company', 'name']
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} (Parent: {self.get_parent_type_display()})"
 
 
 class VoucherSequence(models.Model):
@@ -59,9 +92,23 @@ class Voucher(TenantModel):
         choices=VoucherType.choices,
         db_index=True
     )
+    custom_voucher_type = models.ForeignKey(
+        CustomVoucherType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vouchers',
+        help_text='Optional link to a user-defined custom voucher type.'
+    )
     narration = models.TextField(
         blank=True,
         help_text='General comments for this transaction.'
+    )
+    party_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='Name of the associated party (Customer, Vendor, etc.)'
     )
     is_posted = models.BooleanField(
         default=False,
@@ -88,7 +135,7 @@ class Voucher(TenantModel):
         3. (On update) Ensure total DR equals total CR.
         """
         # Block edits to posted vouchers
-        if self.pk:
+        if not self._state.adding:
             original = Voucher.all_objects.get(pk=self.pk)
             if original.is_posted:
                 # Allow unposting only if specifically implemented, 
@@ -102,15 +149,21 @@ class Voucher(TenantModel):
                 f"({self.company.financial_year_start} to {self.company.financial_year_end})."
             )
 
-        # Dr/Cr check (simplified for existing records)
-        if self.pk:
+        # 2. Double-Entry Balance Check
+        # A voucher must always be balanced (Dr = Cr) if it is marked as posted.
+        if self.is_posted and self.pk:
+            from django.db.models import Sum
             entries = self.entries.all()
-            if entries.exists():
-                from django.db.models import Sum
-                dr_sum = entries.filter(entry_type=EntryType.DEBIT).aggregate(s=Sum('amount'))['s'] or 0
-                cr_sum = entries.filter(entry_type=EntryType.CREDIT).aggregate(s=Sum('amount'))['s'] or 0
-                if dr_sum != cr_sum:
-                    raise ValidationError(f"Accounting Mismatch: Total Debit ({dr_sum}) != Total Credit ({cr_sum})")
+            if not entries.exists():
+                raise ValidationError("Cannot post an empty voucher. At least two entries are required.")
+                
+            dr_sum = entries.filter(entry_type=EntryType.DEBIT).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+            cr_sum = entries.filter(entry_type=EntryType.CREDIT).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+            
+            if dr_sum != cr_sum:
+                raise ValidationError(
+                    f"Accounting Mismatch: Total Debit ({dr_sum}) must equal Total Credit ({cr_sum}) for posted vouchers."
+                )
 
     def delete(self, *args, **kwargs):
         """Block deletion of posted vouchers."""
@@ -161,6 +214,28 @@ class VoucherEntry(TenantModel):
         max_length=2,
         choices=EntryType.choices,
         help_text='DR for Debit, CR for Credit.'
+    )
+    # Inventory Linkage (Optional for non-inventory vouchers)
+    stock_item = models.ForeignKey(
+        'inventory.StockItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='voucher_entries'
+    )
+    quantity = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Quantity for item-based entries.'
+    )
+    rate = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Rate per unit.'
     )
 
     class Meta:

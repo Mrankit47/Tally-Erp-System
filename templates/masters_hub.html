@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Create Masters | {{ company.name }}{% endblock %}
+{% block page_title %}Masters Configuration{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-10 px-6">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="mb-14 animate-fade-in text-center lg:text-left">
+        <h2 class="text-5xl font-black text-gray-900 tracking-tight">Masters Hub</h2>
+        <p class="text-lg text-gray-500 mt-3 font-medium">Choose a master to configure your accounting and inventory settings.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+
+        <!-- ═══════════ ACCOUNTING MASTERS ═══════════ -->
+        <div class="space-y-8 animate-fade-in animate-delay-1">
+            <div class="flex items-center gap-4 px-4">
+                <div class="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight">Accounting Masters</h3>
+                    <p class="text-xs font-bold text-brand-600 uppercase tracking-widest mt-0.5">Financial Structure</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col">
+                {% for master in accounting_masters %}
+                    <a href="{% if master.slug == 'ledger' %}{% url 'ledger_create' %}{% else %}{% url 'master_create' master.slug %}{% endif %}" 
+                       class="block px-4 py-3 text-lg font-bold text-gray-700 transition-all duration-150 hover:text-brand-600 hover:bg-gray-50 rounded-xl">
+                        {{ master.label }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ═══════════ INVENTORY MASTERS ═══════════ -->
+        <div class="space-y-8 animate-fade-in animate-delay-2">
+            <div class="flex items-center gap-4 px-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight">Inventory Masters</h3>
+                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Stock Management</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col">
+                {% for master in inventory_masters %}
+                    <a href="{% if master.slug == 'stockitem' %}{% url 'inventory_create' %}{% else %}{% url 'master_create' master.slug %}{% endif %}" 
+                       class="block px-4 py-3 text-lg font-bold text-gray-700 transition-all duration-150 hover:text-brand-600 hover:bg-gray-50 rounded-xl">
+                        {{ master.label }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

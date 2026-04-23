@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Voucher | {{ company.name }}{% endblock %}
+{% block page_title %}Payment Voucher{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-8 px-4">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="mb-8 flex items-center justify-between animate-fade-in">
+        <div>
+            <h2 class="text-3xl font-black text-gray-900 tracking-tight">Payment Voucher</h2>
+            <p class="text-sm text-gray-500 mt-1">Record a new payment from cash or bank accounts.</p>
+        </div>
+        <div class="text-right">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Voucher No</span>
+            <span class="text-xl font-mono font-bold text-brand-600 bg-brand-50 px-4 py-1.5 rounded-xl border border-brand-100">
+                AUTO
+            </span>
+        </div>
+    </div>
+
+    <form method="POST" id="payment-form" class="space-y-6">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <!-- ═══════════ CASH/BANK SELECTION ═══════════ -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-8 space-y-8 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Date -->
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Voucher Date</label>
+                    {{ header_form.date }}
+                </div>
+
+                <!-- Account (Cash/Bank) -->
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Account (Paid From)</label>
+                    <select id="account-select" class="block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all">
+                        <option value="">-- Select Cash/Bank Ledger --</option>
+                        {% for cb in cash_bank %}
+                            <option value="{{ cb.id }}">{{ cb.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ PARTICULARS TABLE ═══════════ -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="px-8 py-5 bg-gray-50/50 border-b border-gray-50 flex items-center justify-between">
+                <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Particulars (Paid To)</h3>
+                <button type="button" id="add-particular-row" class="text-[10px] font-bold text-brand-600 hover:text-brand-700 flex items-center gap-2 uppercase tracking-widest transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Add Row
+                </button>
+            </div>
+
+            <div class="p-0">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">
+                            <th class="px-8 py-4 w-3/5">Ledger Account</th>
+                            <th class="px-8 py-4 text-right">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="particular-rows-container" class="divide-y divide-gray-50">
+                        <!-- Particular Row Template -->
+                        <tr class="particular-row group hover:bg-gray-50/30 transition-colors">
+                            <td class="px-8 py-5">
+                                <select class="ledger-select w-full rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-semibold focus:border-brand-500 transition-all">
+                                    <option value="">-- Select Ledger --</option>
+                                    {% for l in all_ledgers %}
+                                        <option value="{{ l.id }}">{{ l.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <input type="number" step="0.01" class="amount-input w-48 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-black text-right focus:border-brand-500 transition-all" placeholder="0.00">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- TOTALS & NARRATION -->
+            <div class="p-8 bg-gray-900 text-white flex flex-col sm:flex-row items-center justify-between gap-8">
+                <div class="w-full sm:w-1/2">
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Narration</label>
+                    {{ header_form.narration }}
+                </div>
+                <div class="text-right space-y-1">
+                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total Amount Paid</p>
+                    <p class="text-4xl font-black tracking-tight">₹ <span id="grand-total">0.00</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex items-center justify-end gap-6 pt-4">
+            <a href="{% url 'payments_list' %}" class="text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest">Discard</a>
+            <button type="submit" class="px-12 py-4 bg-brand-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-brand-200 hover:bg-brand-700 hover:-translate-y-1 active:translate-y-0 transition-all">
+                Post Payment
+            </button>
+        </div>
+
+        <!-- HIDDEN REAL FORMSET ROWS -->
+        <div id="hidden-formset" class="hidden">
+            {% for form in formset %}
+                <div class="real-row-data">
+                    {{ form.ledger }}
+                    {{ form.amount }}
+                    {{ form.entry_type }}
+                    {{ form.id }}
+                </div>
+            {% endfor %}
+        </div>
+    </form>
+</div>
+
+<style>
+    #payment-form input:focus, #payment-form select:focus, #payment-form textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rowContainer = document.getElementById('particular-rows-container');
+        const grandTotalSpan = document.getElementById('grand-total');
+        const totalFormsInput = document.getElementById('id_entries-TOTAL_FORMS');
+
+        function calculateGrandTotal() {
+            let total = 0;
+            document.querySelectorAll('.amount-input').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            grandTotalSpan.textContent = total.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            return total;
+        }
+
+        // Add Row
+        document.getElementById('add-particular-row').addEventListener('click', () => {
+            const firstRow = document.querySelector('.particular-row');
+            const newRow = firstRow.cloneNode(true);
+            newRow.querySelector('input').value = '';
+            rowContainer.appendChild(newRow);
+            newRow.querySelector('.amount-input').addEventListener('input', calculateGrandTotal);
+        });
+
+        document.querySelector('.amount-input').addEventListener('input', calculateGrandTotal);
+
+        // PRE-SUBMIT
+        document.getElementById('payment-form').addEventListener('submit', function(e) {
+            const accountId = document.getElementById('account-select').value;
+            if (!accountId) {
+                alert("Please select the Cash/Bank account.");
+                e.preventDefault();
+                return;
+            }
+
+            const total = calculateGrandTotal();
+            const hiddenContainer = document.getElementById('hidden-formset');
+            const templateRow = hiddenContainer.querySelector('.real-row-data').cloneNode(true);
+            hiddenContainer.innerHTML = '';
+            let rowIndex = 0;
+
+            function addRealEntry(ledgerId, amount, type) {
+                const row = templateRow.cloneNode(true);
+                row.innerHTML = row.innerHTML.replace(/-0-/g, `-${rowIndex}-`);
+                row.querySelector(`[name$="-ledger"]`).value = ledgerId;
+                row.querySelector(`[name$="-amount"]`).value = amount.toFixed(2);
+                row.querySelector(`[name$="-entry_type"]`).value = type;
+                hiddenContainer.appendChild(row);
+                rowIndex++;
+            }
+
+            // 1. Account Entry (CREDIT - Payment Out)
+            addRealEntry(accountId, total, 'CR');
+
+            // 2. Particular Entries (DEBIT - Payment To)
+            document.querySelectorAll('.particular-row').forEach(row => {
+                const ledgerId = row.querySelector('.ledger-select').value;
+                const amt = parseFloat(row.querySelector('.amount-input').value) || 0;
+                if (ledgerId && amt > 0) {
+                    addRealEntry(ledgerId, amt, 'DR');
+                }
+            });
+
+            totalFormsInput.value = rowIndex;
+        });
+    });
+</script>
+{% endblock %}

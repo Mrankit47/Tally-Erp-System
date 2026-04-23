@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}New Stock Item{% endblock %}
+{% block page_title %}Inventory Masters{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8">
+    
+    <!-- Header -->
+    <div class="mb-8 animate-fade-in">
+        <nav class="flex mb-4" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <li><a href="{% url 'inventory_list' %}" class="hover:text-brand-600 transition-colors">Inventory</a></li>
+                <li><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></li>
+                <li class="text-gray-900">New Item</li>
+            </ol>
+        </nav>
+        <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Create Stock Item</h2>
+        <p class="mt-2 text-sm text-gray-500">Register a new product or inventory item to track quantity and value.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Form Section -->
+        <div class="lg:col-span-2 space-y-6">
+            <form method="POST" class="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40 overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">
+                {% csrf_token %}
+                
+                <div class="p-6 sm:p-8 space-y-6">
+                    <!-- Global Form Errors -->
+                    {% if form.non_field_errors %}
+                    <div class="p-4 bg-red-50 rounded-2xl border border-red-100 mb-6">
+                        {% for error in form.non_field_errors %}
+                            <div class="flex items-center gap-3 text-red-700 font-medium text-sm">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span>{{ error }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Form Grid -->
+                    <div class="grid grid-cols-1 gap-6">
+                        
+                        <!-- Name -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2" for="{{ form.name.id_for_label }}">Item Name <span class="text-red-400">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <p class="mt-2 text-xs font-medium text-red-500">{{ form.name.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-2 text-xs text-gray-400">Unique identifier for this product (e.g. "Apple iPhone 15 Pro Max").</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <!-- Unit of Measure -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2" for="{{ form.unit_of_measure.id_for_label }}">Unit of measure</label>
+                                {{ form.unit_of_measure }}
+                                {% if form.unit_of_measure.errors %}
+                                    <p class="mt-2 text-xs font-medium text-red-500">{{ form.unit_of_measure.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-2 text-xs text-gray-400">e.g., Pcs, Nos, Kgs, Ltrs.</p>
+                            </div>
+                            
+                            <!-- Opening Balance -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2" for="{{ form.opening_stock_qty.id_for_label }}">Opening Stock</label>
+                                {{ form.opening_stock_qty }}
+                                {% if form.opening_stock_qty.errors %}
+                                    <p class="mt-2 text-xs font-medium text-red-500">{{ form.opening_stock_qty.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-2 text-xs text-gray-400">Initial quantity available at start.</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="px-8 py-6 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
+                    <a href="{% url 'inventory_list' %}" class="text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors">Cancel</a>
+                    <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 bg-brand-600 rounded-2xl text-sm font-bold text-white shadow-xl shadow-brand-200 hover:bg-brand-700 hover:-translate-y-0.5 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Save Stock Item
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-indigo-50/50 rounded-3xl p-6 border border-indigo-100/50 animate-fade-in" style="animation-delay: 0.2s;">
+                <h3 class="text-sm font-bold text-indigo-900 tracking-tight mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Understanding Inventory
+                </h3>
+                <div class="space-y-4">
+                    <p class="text-sm font-medium text-indigo-800 leading-relaxed">
+                        Why track items?
+                    </p>
+                    <p class="text-xs text-indigo-700/80 leading-relaxed">
+                        In Tally, selling physical products updates your accounting entries <strong>and</strong> depletes your stock automatically. 
+                    </p>
+                    <p class="text-xs text-indigo-700/80 leading-relaxed">
+                        To enable "Item Invoices", you must first register your Master Stock Items here. After saving, you can link items directly on Sale or Purchase vouchers.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="p-6 bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40 flex items-center gap-4 group cursor-help transition-all hover:bg-gray-50/50 animate-fade-in" style="animation-delay: 0.3s;">
+                <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 transition-transform group-hover:scale-110">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-900">Inventory Module</h4>
+                    <p class="text-xs font-medium text-gray-500">Base configuration</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

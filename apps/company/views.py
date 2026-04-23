@@ -5,4 +5,29 @@ Thin views that delegate to the service layer.
 Architecture: Views → Services → Models
 """
 
-# Add ViewSets here as the module is developed.
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from .models import Company
+from tally_integration.services import TallySyncService
+
+@login_required
+@require_POST
+def fetch_tally_companies_view(request):
+    """Fetches companies from Tally and saves them to local DB."""
+    try:
+        companies = TallySyncService.fetch_all_tally_companies(request.user)
+        return JsonResponse({'status': 'success', 'message': f'Fetched {len(companies)} companies from Tally.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+@require_POST
+def select_company_view(request):
+    """Sets the active company in the user session."""
+    company_id = request.POST.get('company_id')
+    if company_id:
+        request.session['active_company_id'] = company_id
+        return JsonResponse({'status': 'success', 'message': 'Company selected successfully.'})
+    return JsonResponse({'status': 'error', 'message': 'Company ID not provided.'}, status=400)

@@ -6,6 +6,7 @@ transactional safety and detailed auditing via SyncLog.
 """
 
 import time
+import datetime
 from decimal import Decimal
 from django.db import transaction
 from django.db.models import Sum
@@ -15,7 +16,8 @@ from .client import TallyClient, TallyClientError
 from .xml_utilities import TallyXMLGenerator, TallyXMLParser
 from .models import SyncLog, SyncOperation, SyncStatus
 from ledger.models import Ledger, LedgerGroup
-from voucher.models import VoucherType, EntryType
+from inventory.models import StockItem, StockTransaction, TransactionType, StockGroup
+from voucher.models import Voucher, VoucherEntry, VoucherType, EntryType
 from core.models import SyncStatus as ModelSyncStatus
 
 import logging
@@ -33,6 +35,42 @@ class TallySyncService:
         self.client = TallyClient()
         self.generator = TallyXMLGenerator()
         self.parser = TallyXMLParser()
+
+    @classmethod
+    def fetch_all_tally_companies(cls, user):
+        """
+        Fetches all open companies from Tally and syncs them to the local database.
+        Returns a list of Company objects.
+        """
+        client = TallyClient()
+        generator = TallyXMLGenerator()
+        parser = TallyXMLParser()
+        
+        try:
+            xml_request = generator.get_fetch_companies_xml()
+            xml_response = client.post_with_retry(xml_request)
+            tally_companies = parser.parse_companies(xml_response)
+            
+            from company.models import Company
+            synced_companies = []
+            
+            for comp_data in tally_companies:
+                company, created = Company.objects.update_or_create(
+                    name=comp_data['name'],
+                    defaults={
+                        'financial_year_start': timezone.now().date().replace(month=4, day=1),
+                        'financial_year_end': timezone.now().date().replace(year=timezone.now().year+1, month=3, day=31),
+                    }
+                )
+                if created:
+                    company.created_by = user
+                    company.save(update_fields=['created_by'])
+                synced_companies.append(company)
+                
+            return synced_companies
+        except Exception as e:
+            logger.error(f"Failed to fetch companies from Tally: {str(e)}")
+            raise
 
     # =========================================================================
     # LEDGER SYNC (Inward — Tally → Django)
@@ -53,13 +91,14 @@ class TallySyncService:
         )
 
         try:
-            xml_request = self.generator.get_fetch_ledger_xml()
+            xml_request = self.generator.get_fetch_ledger_xml(company_name=self.company.name)
             xml_response = self.client.post_with_retry(xml_request)
 
             tally_ledgers = self.parser.parse_ledgers(xml_response)
             
             if not tally_ledgers:
-                log.message = "No ledgers found in Tally response."
+                logger.warning(f"Tally Sync: No ledgers found. Raw response length: {len(xml_response)}")
+                log.message = f"No ledgers found in Tally response (Length: {len(xml_response)} bytes)."
                 log.save()
                 return 0
 
@@ -70,14 +109,20 @@ class TallySyncService:
             )
 
             success_count = 0
+            synced_record_ids = []
+
             for data in tally_ledgers:
-                group, _ = LedgerGroup.objects.get_or_create(
+                # 1. Handle Group
+                group, group_created = LedgerGroup.objects.get_or_create(
                     company=self.company,
                     name=data['parent'],
                     defaults={'created_by': self.user, 'parent': default_group}
                 )
+                if group_created:
+                    synced_record_ids.append(str(group.id))
 
-                Ledger.objects.update_or_create(
+                # 2. Handle Ledger
+                ledger, _ = Ledger.objects.update_or_create(
                     company=self.company,
                     name=data['name'],
                     defaults={
@@ -89,11 +134,13 @@ class TallySyncService:
                         'updated_by': self.user,
                     }
                 )
+                synced_record_ids.append(str(ledger.id))
                 success_count += 1
 
             log.status = SyncStatus.SUCCESS
             log.message = f"Successfully synchronized {success_count} ledgers from Tally."
             log.records_affected = success_count
+            log.synced_ids = synced_record_ids
             log.save()
             
             return success_count
@@ -104,6 +151,75 @@ class TallySyncService:
             raise
         except Exception as e:
             log.message = f"Unexpected Error: {str(e)}"
+            log.save()
+            raise
+
+    # =========================================================================
+    # INVENTORY SYNC (Inward — Tally → Django)
+    # =========================================================================
+
+    @transaction.atomic
+    def sync_stock_items_from_tally(self):
+        """Fetches and syncs all stock items from Tally."""
+        log = SyncLog.objects.create(
+            company=self.company,
+            created_by=self.user,
+            model_name='StockItem',
+            operation=SyncOperation.FETCH,
+            status=SyncStatus.FAILED
+        )
+        try:
+            xml_request = self.generator.get_fetch_stock_item_xml(company_name=self.company.name)
+            xml_response = self.client.post_with_retry(xml_request)
+            tally_items = self.parser.parse_stock_items(xml_response)
+
+            if not tally_items:
+                log.message = "No stock items found in Tally response."
+                log.save()
+                return 0
+
+            default_group, _ = StockGroup.objects.get_or_create(
+                company=self.company,
+                name='Primary',
+                defaults={'created_by': self.user}
+            )
+
+            success_count = 0
+            synced_record_ids = []
+            for item in tally_items:
+                # 1. Handle Group recursively map
+                group, _ = StockGroup.objects.get_or_create(
+                    company=self.company,
+                    name=item['parent'],
+                    defaults={'created_by': self.user, 'parent': default_group}
+                )
+
+                # 2. Handle Stock Item
+                si, _ = StockItem.objects.update_or_create(
+                    company=self.company,
+                    name=item['name'],
+                    defaults={
+                        'group': group,
+                        'unit_of_measure': item['unit_of_measure'],
+                        'opening_stock_qty': item['opening_balance'],
+                        'closing_stock_qty': item.get('closing_balance', 0),
+                        'tally_id': item['name'],
+                        'sync_status': ModelSyncStatus.SYNCED,
+                        'last_synced_at': timezone.now(),
+                        'updated_by': self.user,
+                    }
+                )
+                synced_record_ids.append(str(si.id))
+                success_count += 1
+
+            log.status = SyncStatus.SUCCESS
+            log.message = f"Successfully synchronized {success_count} stock items from Tally."
+            log.records_affected = success_count
+            log.synced_ids = synced_record_ids
+            log.save()
+            return success_count
+        except Exception as e:
+            log.message = f"Inward Stock Sync Error: {str(e)}"
             log.save()
             raise
 
@@ -131,9 +247,13 @@ class TallySyncService:
                 log.save()
                 return True
 
+            parent_group = ledger.group.name if ledger.group else 'Suspense A/c'
+            if parent_group.lower() == 'primary':
+                parent_group = 'Suspense A/c'
+                
             xml_request = self.generator.get_create_ledger_xml(
                 name=ledger.name,
-                parent=ledger.group.name,
+                parent=parent_group,
                 opening_balance=ledger.opening_balance
             )
             xml_response = self.client.post_with_retry(xml_request)
@@ -147,6 +267,7 @@ class TallySyncService:
                 log.status = SyncStatus.SUCCESS
                 log.message = f"Ledger '{ledger.name}' successfully created in Tally."
                 log.records_affected = 1
+                log.synced_ids = [str(ledger.id)]
                 log.save()
                 return True
             else:
@@ -185,6 +306,20 @@ class TallySyncService:
             expected_type=VoucherType.SALES,
             xml_generator=self.generator.get_sales_voucher_xml,
             label='Sales',
+        )
+
+    @transaction.atomic
+    def push_purchase_voucher_to_tally(self, voucher):
+        """
+        Pushes a Purchase Voucher to Tally.
+
+        Accounting: Purchase Account (Dr) / Vendor (Cr)
+        """
+        return self._push_voucher_to_tally(
+            voucher=voucher,
+            expected_type=VoucherType.PURCHASE,
+            xml_generator=self.generator.get_purchase_voucher_xml,
+            label='Purchase',
         )
 
     @transaction.atomic
@@ -291,6 +426,24 @@ class TallySyncService:
                 log.save()
                 return False
 
+            # ─── AUTO-CREATE LEDGERS IN TALLY ───
+            logger.info(f"Auto-ensuring ledgers exist in Tally for '{voucher.number}'")
+            for entry in entries:
+                ledger = entry.ledger
+                parent_group = ledger.group.name if ledger.group else 'Sundry Debtors'
+                if parent_group.lower() == 'primary':
+                    parent_group = 'Suspense A/c'
+                ledger_xml = self.generator.get_create_ledger_xml(
+                    name=ledger.name,
+                    parent=parent_group,
+                    opening_balance=0
+                )
+                try:
+                    self.client.post_with_retry(ledger_xml)
+                    logger.info(f"  Ensured ledger '{ledger.name}' under '{parent_group}' in Tally")
+                except Exception as le:
+                    logger.warning(f"  Ledger '{ledger.name}' push note: {le}")
+
             # ─── GENERATE XML ───
             logger.info(f"Generating {label} Voucher XML for '{voucher.number}'")
             xml_request = xml_generator(voucher)
@@ -313,6 +466,7 @@ class TallySyncService:
                     f"Stats: Created={stats['created']}, Errors={stats['errors']}"
                 )
                 log.records_affected = 1
+                log.synced_ids = [str(voucher.id)]
                 log.save()
 
                 logger.info(f"{label} Voucher '{voucher.number}' synced to Tally successfully.")
@@ -344,9 +498,71 @@ class TallySyncService:
             logger.exception(f"Unexpected error pushing {label} voucher '{voucher.number}'")
             return False
 
+    def push_stock_item_to_tally(self, stock_item):
+        """Creates a single Stock Item in Tally."""
+        log = SyncLog.objects.create(
+            company=self.company,
+            created_by=self.user,
+            model_name='StockItem',
+            operation=SyncOperation.PUSH,
+            status=SyncStatus.FAILED
+        )
+        try:
+            xml_request = self.generator.get_create_stock_item_xml(
+                name=stock_item.name,
+                unit_of_measure=stock_item.unit_of_measure
+            )
+            xml_response = self.client.post_with_retry(xml_request)
+
+            if self.parser.is_import_successful(xml_response):
+                stock_item.sync_status = ModelSyncStatus.SYNCED
+                stock_item.tally_id = stock_item.name
+                stock_item.last_synced_at = timezone.now()
+                stock_item.save(update_fields=['sync_status', 'tally_id', 'last_synced_at'])
+
+                log.status = SyncStatus.SUCCESS
+                log.message = f"Stock Item '{stock_item.name}' successfully created in Tally."
+                log.records_affected = 1
+                log.synced_ids = [str(stock_item.id)]
+                log.save()
+                return True
+            else:
+                error_msg = self.parser.extract_error_message(xml_response)
+                log.message = f"Tally Rejection: {error_msg}"
+                log.save()
+                return False
+        except Exception as e:
+            log.message = f"Push Stock Error: {str(e)}"
+            log.save()
+            return False
+
     # =========================================================================
     # BATCH OPERATIONS / RETRY LOGIC
     # =========================================================================
+
+    def push_all_ledgers_to_tally(self):
+        """
+        Idempotent service to push all local Ledgers for the company to Tally.
+        """
+        unsynced_ledgers = Ledger.objects.filter(
+            company=self.company
+        )
+
+        success_count = 0
+        failed_count = 0
+
+        for ledger in unsynced_ledgers:
+            # push_ledger_to_tally handles duplicate protection
+            if self.push_ledger_to_tally(ledger):
+                success_count += 1
+            else:
+                failed_count += 1
+
+        return {
+            'success': success_count,
+            'failed': failed_count,
+            'total': success_count + failed_count
+        }
 
     def push_all_unsynced_vouchers(self):
         """
@@ -373,6 +589,8 @@ class TallySyncService:
                 result = self.push_payment_voucher_to_tally(voucher)
             elif voucher.voucher_type == VoucherType.RECEIPT:
                 result = self.push_receipt_voucher_to_tally(voucher)
+            elif voucher.voucher_type == VoucherType.PURCHASE:
+                result = self.push_purchase_voucher_to_tally(voucher)
             else:
                 logger.warning(f"Batch Sync: Unsupported voucher type '{voucher.voucher_type}' for '{voucher.number}'")
                 continue
@@ -390,3 +608,189 @@ class TallySyncService:
             'failed': failed_count,
             'total': success_count + failed_count
         }
+
+    @transaction.atomic
+    def sync_vouchers_from_tally(self, voucher_type_label, from_date, to_date):
+        """
+        Fetches vouchers from Tally and creates them locally.
+        Ensures Ledgers and StockItems exist.
+        """
+        log = SyncLog.objects.create(
+            company=self.company,
+            created_by=self.user,
+            model_name='Voucher',
+            operation=SyncOperation.FETCH,
+            status=SyncStatus.FAILED
+        )
+        try:
+            # Map UI label to VoucherType
+            type_map = {
+                'sales': VoucherType.SALES,
+                'payments': VoucherType.PAYMENT,
+                'payment': VoucherType.PAYMENT,
+                'receipts': VoucherType.RECEIPT,
+                'receipt': VoucherType.RECEIPT,
+                'contra': VoucherType.CONTRA,
+                'journal': VoucherType.JOURNAL,
+                'purchase': VoucherType.PURCHASE
+            }
+            target_type = type_map.get(voucher_type_label.lower())
+            if not target_type:
+                raise ValueError(f"Unknown voucher type: {voucher_type_label}")
+
+            # Format dates to YYYYMMDD
+            fd = from_date.replace('-', '').replace('/', '')
+            td = to_date.replace('-', '').replace('/', '')
+            
+            xml_request = self.generator.get_fetch_vouchers_xml(
+                voucher_type=voucher_type_label,
+                from_date=fd,
+                to_date=td,
+                company_name=self.company.name
+            )
+            xml_response = self.client.post_with_retry(xml_request)
+            tally_vouchers = self.parser.parse_vouchers_fetch(xml_response)
+
+            if not tally_vouchers:
+                log.message = f"No {voucher_type_label} vouchers found for period {from_date} to {to_date}."
+                log.save()
+                return 0
+
+            primary_group, _ = LedgerGroup.objects.get_or_create(
+                company=self.company,
+                name='Primary',
+                defaults={'created_by': self.user}
+            )
+
+            success_count = 0
+            synced_record_ids = []
+
+            for v_data in tally_vouchers:
+                # 1. Parse Date
+                v_date_str = v_data.get('date', '')
+                if v_date_str and len(v_date_str) == 8:
+                    try:
+                        v_date = datetime.datetime.strptime(v_date_str, '%Y%m%d').date()
+                    except ValueError:
+                        v_date = timezone.now().date()
+                else:
+                    v_date = timezone.now().date()
+
+                vid = v_data.get('number')
+                if not vid:
+                    continue  # Skip if no voucher number
+
+                # 2. Create or Update Voucher
+                voucher, created = Voucher.objects.update_or_create(
+                    company=self.company,
+                    tally_id=vid,
+                    voucher_type=target_type,
+                    defaults={
+                        'number': vid,
+                        'date': v_date,
+                        'narration': v_data.get('narration') or '',
+                        'party_name': v_data.get('party_name') or '',
+                        'is_posted': True,
+                        'sync_status': ModelSyncStatus.SYNCED,
+                        'last_synced_at': timezone.now(),
+                        'updated_by': self.user,
+                    }
+                )
+                
+                # If creating, set created_by
+                if created:
+                    voucher.created_by = self.user
+                    voucher.save(update_fields=['created_by'])
+
+                synced_record_ids.append(str(voucher.id))
+
+                # Clear old entries and stock transactions if updating
+                if not created:
+                    voucher.entries.all().delete()
+
+                # 3. Create Entries
+                for e_data in v_data.get('entries', []):
+                    # Resolve Ledger
+                    ledger_name = e_data.get('ledger') or 'Suspense A/C'
+                    ledger, _ = Ledger.objects.get_or_create(
+                        company=self.company,
+                        name=ledger_name,
+                        defaults={
+                            'group': primary_group,
+                            'sync_status': ModelSyncStatus.PENDING,
+                            'created_by': self.user,
+                        }
+                    )
+
+                    # Resolve Stock Item
+                    stock_item_name = e_data.get('stock_item')
+                    stock_item = None
+                    if stock_item_name:
+                        stock_item, _ = StockItem.objects.get_or_create(
+                            company=self.company,
+                            name=stock_item_name,
+                            defaults={
+                                'sync_status': ModelSyncStatus.PENDING,
+                                'created_by': self.user,
+                            }
+                        )
+
+                    entry_type = EntryType.DEBIT if e_data.get('is_debit') else EntryType.CREDIT
+
+                    # Create VoucherEntry
+                    entry = VoucherEntry.objects.create(
+                        company=self.company,
+                        voucher=voucher,
+                        ledger=ledger,
+                        amount=e_data.get('amount') or Decimal('0.00'),
+                        entry_type=entry_type,
+                        stock_item=stock_item,
+                        quantity=e_data.get('quantity'),
+                        # Note: Rate could be calculated if amount / quantity is available,
+                        # but Tally fetch might not provide it reliably in this list
+                        rate=Decimal(e_data.get('amount')) / Decimal(e_data.get('quantity')) if e_data.get('quantity') and Decimal(e_data.get('quantity')) > 0 else None,
+                        created_by=self.user,
+                        updated_by=self.user
+                    )
+
+                    # 4. Create StockTransaction
+                    if stock_item:
+                        tx_type = TransactionType.OUT if target_type == VoucherType.SALES else TransactionType.IN
+                        StockTransaction.objects.create(
+                            company=self.company,
+                            stock_item=stock_item,
+                            voucher_entry=entry,
+                            quantity=entry.quantity or Decimal('0.00'),
+                            rate=entry.rate or Decimal('0.00'),
+                            transaction_type=tx_type,
+                            created_by=self.user,
+                            updated_by=self.user
+                        )
+
+                # Compute party_name if missing from PARTYLEDGERNAME (common in Tally for general vouchers)
+                if not voucher.party_name:
+                    party_entry = None
+                    if target_type == VoucherType.SALES:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.DEBIT).first()
+                    elif target_type == VoucherType.RECEIPT:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.CREDIT).first()
+                    elif target_type == VoucherType.PAYMENT:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.DEBIT).first()
+                    
+                    if party_entry:
+                        voucher.party_name = party_entry.ledger.name
+                        voucher.save(update_fields=['party_name'])
+
+                success_count += 1
+
+            log.status = SyncStatus.SUCCESS
+            log.message = f"Successfully synchronized {success_count} {voucher_type_label} vouchers from Tally."
+            log.records_affected = success_count
+            log.synced_ids = synced_record_ids
+            log.save()
+            
+            return success_count
+        except Exception as e:
+            log.message = f"Voucher Fetch Error: {str(e)}"
+            log.save()
+            raise

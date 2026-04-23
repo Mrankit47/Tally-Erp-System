@@ -7,8 +7,12 @@ Environment-specific overrides are in dev.py and prod.py.
 
 import os
 import sys
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # PATH CONFIGURATION
@@ -16,6 +20,10 @@ from dotenv import load_dotenv
 
 # BASE_DIR = Major Project/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# =============================================================================
+# ENVIRONMENT LOADING
+# =============================================================================
 
 # Load environment variables from .env file
 load_dotenv(BASE_DIR / '.env')
@@ -28,7 +36,11 @@ sys.path.insert(0, str(BASE_DIR / 'apps'))
 # CORE SETTINGS
 # =============================================================================
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'insecure-default-key-change-in-production')
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY must be set in your .env file for security.")
+
+DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -80,6 +92,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.ActiveCompanyMiddleware',
     'core.middleware.ErrorHandlingMiddleware',  # Custom global error handler — last
 ]
 
@@ -104,6 +117,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.active_company_context',
             ],
         },
     },
@@ -120,14 +134,24 @@ ASGI_APPLICATION = 'config.asgi.application'
 # DATABASE — PostgreSQL (Supabase compatible)
 # =============================================================================
 
+# Validate DB credentials
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT", "5432")
+
+if not all([DB_NAME, DB_USER, DB_HOST]):
+    logger.warning("Database configuration environment variables are missing. Check your .env file.")
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'erp_db'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
         'OPTIONS': {
             'connect_timeout': 10,
         },
@@ -247,6 +271,22 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'verbose',
         },
+        'security_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'security.log'),
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'WARNING',
+        },
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'error.log'),
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
     },
     'root': {
         'handlers': ['console', 'file'],
@@ -259,7 +299,12 @@ LOGGING = {
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console', 'error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security.*': {
+            'handlers': ['console', 'security_file'],
             'level': 'WARNING',
             'propagate': False,
         },

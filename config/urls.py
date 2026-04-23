@@ -12,12 +12,14 @@ from django.conf.urls.static import static
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from core.views import (
+from apps.core.views import (
     dashboard_view, 
     sync_logs_view, 
     trigger_sync_view, 
     retry_sync_log_view, 
-    about_project_view
+    about_project_view,
+    masters_hub_view,
+    generic_master_view
 )
 
 
@@ -71,10 +73,18 @@ urlpatterns = [
     path('sync-logs/', sync_logs_view, name='sync-logs'),
     path('about-project/', about_project_view, name='about-project'),
     path('reports/', include('reports.urls')),
+    path('vouchers/', include('voucher.urls')),
+    path('masters/', include('ledger.urls')),
+    path('inventory/', include('inventory.urls')),
+    
+    # --- Masters Hub ---
+    path('masters/hub/', masters_hub_view, name='masters_hub'),
+    path('masters/create/<slug:slug>/', generic_master_view, name='master_create'),
 
     # ─── UI AJAX Actions ───
     path('trigger-sync/', trigger_sync_view, name='trigger-sync'),
-    path('retry-sync/<int:log_id>/', retry_sync_log_view, name='retry-sync'),
+    path('retry-sync/<uuid:log_id>/', retry_sync_log_view, name='retry-sync'),
+    path('tally/', include('tally_integration.urls')),
 
     # ─── Admin ───
     path('admin/', admin.site.urls),

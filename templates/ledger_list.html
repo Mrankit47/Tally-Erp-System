@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load currency_tags %}
+
+{% block title %}Ledger Master{% endblock %}
+{% block page_title %}Ledger Master (Chart of Accounts){% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Chart of Accounts</h2>
+            <p class="mt-1 text-sm text-gray-500">Managing all ledgers and financial groupings for {{ company.name }}.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- ─── IMPORT BUTTON ─── -->
+            <button id="sync-tally-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm font-semibold text-blue-600 hover:bg-blue-100 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Import from Tally
+            </button>
+            
+            <!-- ─── UPLOAD BUTTON ─── -->
+            <button id="push-tally-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm font-semibold text-indigo-600 hover:bg-indigo-100 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Push to Tally
+            </button>
+
+            <a href="{% url 'ledger_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 border border-transparent rounded-lg text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Create New Ledger
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Shared Sync Function
+        async function triggerSync(type, btn, loadingText) {
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> ${loadingText}...`;
+
+            try {
+                const response = await fetch('{% url "trigger-sync" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ type: type })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Connection Error: Could not reach the ERP server.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('sync-tally-btn')?.addEventListener('click', function() {
+            if (confirm('This will fetch all Ledger masters from your running Tally ERP. Continue?')) {
+                triggerSync('ledgers', this, 'Importing');
+            }
+        });
+
+        document.getElementById('push-tally-btn')?.addEventListener('click', function() {
+            if (confirm('This will upload all local Ledgers to Tally ERP. Continue?')) {
+                triggerSync('ledgers_push', this, 'Uploading');
+            }
+        });
+    </script>
+
+    <!-- ═══════════ GROUPED LIST ═══════════ -->
+    <div class="space-y-4 animate-fade-in" style="animation-delay: 0.1s;">
+        {% for group in groups %}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            
+            <div class="px-6 py-4 bg-gray-50/50 border-b border-gray-50 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-tight">{{ group.name }}</h3>
+                        <p class="text-[10px] text-gray-400 font-medium">{{ group.ledgers.count }} accounts connected</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-gray-400 text-[10px] uppercase font-bold tracking-widest border-b border-gray-50">
+                            <th class="px-6 py-3">Account Name</th>
+                            <th class="px-6 py-3 text-right">Opening Balance</th>
+                            <th class="px-6 py-3 text-right">Current Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for ledger in group.ledgers.all %}
+                        <tr class="hover:bg-gray-50/50 transition-colors group">
+                            <td class="px-6 py-4">
+                                <span class="font-medium text-gray-700 group-hover:text-brand-600 transition-colors">{{ ledger.name }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-right text-gray-400 font-mono">
+                                {{ ledger.opening_balance | indian_currency }}
+                            </td>
+                            <td class="px-6 py-4 text-right font-bold text-gray-900 font-mono">
+                                {{ ledger.balance | indian_currency }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="px-6 py-8 text-center text-gray-400 text-xs italic">
+                                No ledgers found in this category.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <svg class="w-12 h-12 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <h3 class="text-lg font-bold text-gray-900 mb-1">Chart of Accounts Empty</h3>
+            <p class="text-sm text-gray-500">Sync with Tally to fetch your Ledger Groups and Ledgers.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
