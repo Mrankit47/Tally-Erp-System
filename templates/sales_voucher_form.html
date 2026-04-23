@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Sales Invoice | {{ company.name }}{% endblock %}
+{% block page_title %}Sales Invoice{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-8 px-4">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="mb-8 flex items-center justify-between animate-fade-in">
+        <div>
+            <h2 class="text-3xl font-black text-gray-900 tracking-tight">Sales Invoice</h2>
+            <p class="text-sm text-gray-500 mt-1">Record a new sales transaction with automatic tax calculation.</p>
+        </div>
+        <div class="text-right">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Voucher No</span>
+            <span class="text-xl font-mono font-bold text-brand-600 bg-brand-50 px-4 py-1.5 rounded-xl border border-brand-100">
+                AUTO
+            </span>
+        </div>
+    </div>
+
+    <form method="POST" id="sales-form" class="space-y-6">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <!-- ═══════════ PARTY & GENERAL INFO ═══════════ -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-8 space-y-8 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Date -->
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Invoice Date</label>
+                    {{ header_form.date }}
+                </div>
+
+                <!-- Party Name -->
+                <div class="md:col-span-1 space-y-2">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Party A/c Name (Debtor)</label>
+                    <select id="party-select" class="block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all">
+                        <option value="">-- Select Customer --</option>
+                        {% for d in debtors %}
+                            <option value="{{ d.id }}">{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Sales Ledger -->
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Sales Ledger</label>
+                    <select id="sales-ledger-select" class="block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all">
+                        {% for s in sales_ledgers %}
+                            <option value="{{ s.id }}">{{ s.name }}</option>
+                        {% empty %}
+                            <option value="">No Sales Ledgers Found</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ INVENTORY TABLE ═══════════ -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="px-8 py-5 bg-gray-50/50 border-b border-gray-50 flex items-center justify-between">
+                <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Particulars (Items)</h3>
+                <button type="button" id="add-item-row" class="text-[10px] font-bold text-brand-600 hover:text-brand-700 flex items-center gap-2 uppercase tracking-widest transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Add Item
+                </button>
+            </div>
+
+            <div class="p-0">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">
+                            <th class="px-8 py-4 w-1/3">Name of Item</th>
+                            <th class="px-4 py-4">Quantity</th>
+                            <th class="px-4 py-4">Rate</th>
+                            <th class="px-8 py-4 text-right">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="item-rows-container" class="divide-y divide-gray-50">
+                        <!-- Item Row Template -->
+                        <tr class="item-row group hover:bg-gray-50/30 transition-colors">
+                            <td class="px-8 py-5">
+                                <select class="item-select w-full rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-semibold focus:border-brand-500 transition-all">
+                                    <option value="">-- Select Item --</option>
+                                    {% for item in stock_items %}
+                                        <option value="{{ item.id }}">{{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-5">
+                                <input type="number" step="0.01" class="qty-input w-24 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-bold text-center focus:border-brand-500 transition-all" placeholder="0.00">
+                            </td>
+                            <td class="px-4 py-5">
+                                <input type="number" step="0.01" class="rate-input w-32 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-bold text-center focus:border-brand-500 transition-all" placeholder="0.00">
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <span class="item-amount text-sm font-black text-gray-900">0.00</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ═══════════ TAXES & BILLING ═══════════ -->
+            <div class="p-0 border-t border-gray-100 bg-gray-50/20">
+                <table class="w-full text-left">
+                    <tbody id="tax-rows-container" class="divide-y divide-gray-50">
+                        <!-- Tax rows will be added here -->
+                    </tbody>
+                </table>
+                <div class="px-8 py-4 flex justify-end">
+                    <button type="button" id="add-tax-row" class="text-[10px] font-bold text-gray-400 hover:text-brand-600 flex items-center gap-2 uppercase tracking-widest transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                        Add Tax/Charge
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══════════ TOTALS SECTION ═══════════ -->
+            <div class="p-8 bg-gray-900 text-white flex flex-col sm:flex-row items-center justify-between gap-8">
+                <div class="w-full sm:w-1/2">
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Narration</label>
+                    {{ header_form.narration }}
+                </div>
+                <div class="text-right space-y-1">
+                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total Amount Payable</p>
+                    <p class="text-4xl font-black tracking-tight">₹ <span id="grand-total">0.00</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex items-center justify-end gap-6 pt-4">
+            <a href="{% url 'sales_list' %}" class="text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest">Discard</a>
+            <button type="submit" class="px-12 py-4 bg-brand-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-brand-200 hover:bg-brand-700 hover:-translate-y-1 active:translate-y-0 transition-all">
+                Save Invoice
+            </button>
+        </div>
+
+        <!-- HIDDEN REAL FORMSET ROWS (Populated by JS) -->
+        <div id="hidden-formset" class="hidden">
+            {% for form in formset %}
+                <div class="real-row-data">
+                    {{ form.ledger }}
+                    {{ form.amount }}
+                    {{ form.entry_type }}
+                    {{ form.stock_item }}
+                    {{ form.quantity }}
+                    {{ form.rate }}
+                    {{ form.id }}
+                </div>
+            {% endfor %}
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Premium styling for inputs in Sales form */
+    #sales-form input:focus, #sales-form select:focus, #sales-form textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+    .item-row input, .item-row select {
+        border-color: transparent !important;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const itemBody = document.getElementById('item-rows-container');
+        const taxBody = document.getElementById('tax-rows-container');
+        const grandTotalSpan = document.getElementById('grand-total');
+        const totalFormsInput = document.getElementById('id_entries-TOTAL_FORMS');
+
+        // Tax Ledgers Data from Django
+        const taxLedgers = [
+            {% for t in tax_ledgers %}
+            { id: "{{ t.id }}", name: "{{ t.name }}" },
+            {% endfor %}
+        ];
+
+        function calculateGrandTotal() {
+            let subtotal = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+                const amt = qty * rate;
+                row.querySelector('.item-amount').textContent = amt.toFixed(2);
+                subtotal += amt;
+            });
+
+            let taxes = 0;
+            document.querySelectorAll('.tax-row').forEach(row => {
+                const amt = parseFloat(row.querySelector('.tax-amount-input').value) || 0;
+                taxes += amt;
+            });
+
+            const total = subtotal + taxes;
+            grandTotalSpan.textContent = total.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            return { subtotal, taxes, total };
+        }
+
+        // Add Item Row
+        document.getElementById('add-item-row').addEventListener('click', () => {
+            const firstRow = document.querySelector('.item-row');
+            const newRow = firstRow.cloneNode(true);
+            newRow.querySelectorAll('input').forEach(i => i.value = '');
+            newRow.querySelector('.item-amount').textContent = '0.00';
+            itemBody.appendChild(newRow);
+            attachRowListeners(newRow);
+        });
+
+        // Add Tax Row
+        document.getElementById('add-tax-row').addEventListener('click', () => {
+            const row = document.createElement('tr');
+            row.className = 'tax-row group hover:bg-gray-50/30 transition-colors';
+            row.innerHTML = `
+                <td class="px-8 py-4">
+                    <select class="tax-select w-full rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-semibold focus:border-brand-500 transition-all">
+                        <option value="">-- Select Tax Ledger --</option>
+                        ${taxLedgers.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="px-4 py-4" colspan="2"></td>
+                <td class="px-8 py-4 text-right">
+                    <input type="number" step="0.01" class="tax-amount-input w-40 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-black text-right focus:border-brand-500 transition-all" placeholder="0.00">
+                </td>
+            `;
+            taxBody.appendChild(row);
+            
+            // Tax Calculation Logic
+            row.querySelector('.tax-select').addEventListener('change', function() {
+                const name = this.options[this.selectedIndex].text;
+                const match = name.match(/(\d+(\.\d+)?)%/);
+                if (match) {
+                    const rate = parseFloat(match[1]);
+                    const { subtotal } = calculateGrandTotal();
+                    const taxAmt = (subtotal * rate / 100).toFixed(2);
+                    row.querySelector('.tax-amount-input').value = taxAmt;
+                    calculateGrandTotal();
+                }
+            });
+
+            row.querySelector('.tax-amount-input').addEventListener('input', calculateGrandTotal);
+        });
+
+        function attachRowListeners(row) {
+            row.querySelector('.qty-input').addEventListener('input', calculateGrandTotal);
+            row.querySelector('.rate-input').addEventListener('input', calculateGrandTotal);
+        }
+        attachRowListeners(document.querySelector('.item-row'));
+
+        // PRE-SUBMIT LOGIC: Map the pretty UI to the hidden Django Formset
+        document.getElementById('sales-form').addEventListener('submit', function(e) {
+            const partyId = document.getElementById('party-select').value;
+            const salesLedgerId = document.getElementById('sales-ledger-select').value;
+            if (!partyId || !salesLedgerId) {
+                alert("Please select Party and Sales Ledger.");
+                e.preventDefault();
+                return;
+            }
+
+            const { subtotal, taxes, total } = calculateGrandTotal();
+            
+            // We need to clear and rebuild the hidden formset
+            const hiddenContainer = document.getElementById('hidden-formset');
+            const templateRow = hiddenContainer.querySelector('.real-row-data').cloneNode(true);
+            hiddenContainer.innerHTML = '';
+            
+            let rowIndex = 0;
+
+            function addRealEntry(ledgerId, amount, type, stockItemId=null, qty=null, rate=null) {
+                const row = templateRow.cloneNode(true);
+                row.innerHTML = row.innerHTML.replace(/-0-/g, `-${rowIndex}-`);
+                
+                row.querySelector(`[name$="-ledger"]`).value = ledgerId;
+                row.querySelector(`[name$="-amount"]`).value = amount.toFixed(2);
+                row.querySelector(`[name$="-entry_type"]`).value = type;
+                if (stockItemId) {
+                    row.querySelector(`[name$="-stock_item"]`).value = stockItemId;
+                    row.querySelector(`[name$="-quantity"]`).value = qty;
+                    row.querySelector(`[name$="-rate"]`).value = rate;
+                }
+                
+                hiddenContainer.appendChild(row);
+                rowIndex++;
+            }
+
+            // 1. Party Entry (DEBIT)
+            addRealEntry(partyId, total, 'DR');
+
+            // 2. Item Entries (CREDIT) - map each item row to an entry
+            document.querySelectorAll('.item-row').forEach(row => {
+                const itemId = row.querySelector('.item-select').value;
+                const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+                if (itemId && qty > 0) {
+                    addRealEntry(salesLedgerId, qty * rate, 'CR', itemId, qty, rate);
+                }
+            });
+
+            // 3. Tax Entries (CREDIT)
+            document.querySelectorAll('.tax-row').forEach(row => {
+                const taxId = row.querySelector('.tax-select').value;
+                const amt = parseFloat(row.querySelector('.tax-amount-input').value) || 0;
+                if (taxId && amt > 0) {
+                    addRealEntry(taxId, amt, 'CR');
+                }
+            });
+
+            totalFormsInput.value = rowIndex;
+        });
+    });
+</script>
+{% endblock %}

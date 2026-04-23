@@ -7,18 +7,46 @@ class LedgerForm(forms.ModelForm):
     """
     class Meta:
         model = Ledger
-        fields = ['name', 'group', 'opening_balance']
+        fields = [
+            'name', 'alias', 'group', 'opening_balance', 
+            'address', 'state', 'country', 'pincode', 
+            'pan_no', 'gstin'
+        ]
         widgets = {
             'name': forms.TextInput(attrs={
-                'class': 'block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
-                'placeholder': 'e.g. HDFC Bank Account'
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all',
+                'placeholder': 'Ledger Name'
+            }),
+            'alias': forms.TextInput(attrs={
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all',
+                'placeholder': '(alias)'
             }),
             'group': forms.Select(attrs={
-                'class': 'block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all'
             }),
             'opening_balance': forms.NumberInput(attrs={
-                'class': 'block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all',
                 'step': '0.01'
+            }),
+            'address': forms.Textarea(attrs={
+                'rows': 3,
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all',
+                'placeholder': 'Mailing Address'
+            }),
+            'state': forms.TextInput(attrs={
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all'
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all'
+            }),
+            'pincode': forms.TextInput(attrs={
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all'
+            }),
+            'pan_no': forms.TextInput(attrs={
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all'
+            }),
+            'gstin': forms.TextInput(attrs={
+                'class': 'block w-full rounded-2xl border-gray-100 bg-gray-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all'
             }),
         }
 

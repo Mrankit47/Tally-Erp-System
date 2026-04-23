@@ -29,6 +29,38 @@ class EntryType(models.TextChoices):
     CREDIT = 'CR', 'Credit'
 
 
+class CustomVoucherType(TenantModel):
+    """
+    User-defined Voucher Types (e.g., 'Export Sales', 'Bank Receipt').
+    Inherits behavioral logic from the base VoucherType.
+    """
+    name = models.CharField(max_length=255)
+    parent_type = models.CharField(
+        max_length=20,
+        choices=VoucherType.choices,
+        help_text='Base system behavior to inherit (e.g., SALES, PURCHASE).'
+    )
+    is_active = models.BooleanField(default=True)
+    method_of_numbering = models.CharField(
+        max_length=50,
+        choices=[
+            ('Automatic', 'Automatic'),
+            ('Manual', 'Manual'),
+            ('None', 'None')
+        ],
+        default='Automatic'
+    )
+
+    class Meta:
+        verbose_name = 'Custom Voucher Type'
+        verbose_name_plural = 'Custom Voucher Types'
+        unique_together = ['company', 'name']
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} (Parent: {self.get_parent_type_display()})"
+
+
 class VoucherSequence(models.Model):
     """
     Internal tracker for the next available voucher number.
@@ -59,6 +91,14 @@ class Voucher(TenantModel):
         max_length=20,
         choices=VoucherType.choices,
         db_index=True
+    )
+    custom_voucher_type = models.ForeignKey(
+        CustomVoucherType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vouchers',
+        help_text='Optional link to a user-defined custom voucher type.'
     )
     narration = models.TextField(
         blank=True,

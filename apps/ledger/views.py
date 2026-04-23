@@ -6,6 +6,7 @@ Display and manage the Chart of Accounts.
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError
 from company.models import Company
 from core.permissions import role_required
 from .models import LedgerGroup, Ledger
@@ -19,7 +20,7 @@ def ledger_list_view(request):
     """
     Displays the Chart of Accounts (Ledgers grouped by Category).
     """
-    company = Company.objects.first()
+    company = getattr(request, 'active_company', None)
     
     # Auto-initialize if empty (for better first-time UX)
     if not LedgerGroup.objects.filter(company=company).exists():
@@ -42,7 +43,7 @@ def ledger_create_view(request):
     """
     Handles creation of a new Ledger.
     """
-    company = Company.objects.first()
+    company = getattr(request, 'active_company', None)
     
     # Ensure groups exist
     if not LedgerGroup.objects.filter(company=company).exists():
@@ -51,14 +52,17 @@ def ledger_create_view(request):
     if request.method == 'POST':
         form = LedgerForm(request.POST, company=company)
         if form.is_valid():
-            ledger = form.save(commit=False)
-            ledger.company = company
-            ledger.created_by = request.user
-            ledger.updated_by = request.user
-            ledger.save()
-            
-            messages.success(request, f"Ledger '{ledger.name}' created successfully.")
-            return redirect('ledger_list')
+            try:
+                ledger = form.save(commit=False)
+                ledger.company = company
+                ledger.created_by = request.user
+                ledger.updated_by = request.user
+                ledger.save()
+                
+                messages.success(request, f"Ledger '{ledger.name}' created successfully.")
+                return redirect('ledger_list')
+            except IntegrityError:
+                form.add_error('name', f"A ledger with this name already exists for {company.name}.")
     else:
         form = LedgerForm(company=company)
 

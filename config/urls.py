@@ -17,7 +17,9 @@ from apps.core.views import (
     sync_logs_view, 
     trigger_sync_view, 
     retry_sync_log_view, 
-    about_project_view
+    about_project_view,
+    masters_hub_view,
+    generic_master_view
 )
 
 
@@ -74,6 +76,10 @@ urlpatterns = [
     path('vouchers/', include('voucher.urls')),
     path('masters/', include('ledger.urls')),
     path('inventory/', include('inventory.urls')),
+    
+    # --- Masters Hub ---
+    path('masters/hub/', masters_hub_view, name='masters_hub'),
+    path('masters/create/<slug:slug>/', generic_master_view, name='master_create'),
 
     # ─── UI AJAX Actions ───
     path('trigger-sync/', trigger_sync_view, name='trigger-sync'),

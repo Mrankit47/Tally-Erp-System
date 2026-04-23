@@ -9,7 +9,7 @@ from core.permissions import role_required
 from company.models import Company
 from .models import Voucher, VoucherType, EntryType
 from .forms import VoucherHeaderForm, VoucherEntryFormSet
-from inventory.models import StockTransaction, TransactionType
+from inventory.models import StockItem, StockTransaction, TransactionType
 
 
 @login_required
@@ -18,7 +18,7 @@ def voucher_list_view(request, voucher_type):
     """
     Categorized list view for Vouchers (Sales, Payments, Receipts, etc.).
     """
-    company = Company.objects.first()
+    company = getattr(request, 'active_company', None)
     
     type_map = {
         'sales': VoucherType.SALES,
@@ -26,7 +26,8 @@ def voucher_list_view(request, voucher_type):
         'receipts': VoucherType.RECEIPT,
         'contra': VoucherType.CONTRA,
         'journal': VoucherType.JOURNAL,
-        'purchase': VoucherType.PURCHASE
+        'purchase': VoucherType.PURCHASE,
+        'purchases': VoucherType.PURCHASE
     }
     
     target_type = type_map.get(voucher_type.lower())
@@ -63,13 +64,15 @@ def voucher_create_view(request, voucher_type):
     """
     Handles creation of a new Voucher with inline entries.
     """
-    company = Company.objects.first()
+    company = getattr(request, 'active_company', None)
     ledger_count = Ledger.objects.filter(company=company).count()
     
     type_map = {
         'sales': VoucherType.SALES,
         'payments': VoucherType.PAYMENT,
         'receipts': VoucherType.RECEIPT,
+        'purchase': VoucherType.PURCHASE,
+        'purchases': VoucherType.PURCHASE
     }
     
     target_type = type_map.get(voucher_type.lower())
@@ -116,6 +119,21 @@ def voucher_create_view(request, voucher_type):
                     
                     formset.save_m2m()
                     
+                    # Determine and save party_name from entries
+                    party_entry = None
+                    if target_type == VoucherType.SALES:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.DEBIT).first()
+                    elif target_type == VoucherType.RECEIPT:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.CREDIT).first()
+                    elif target_type == VoucherType.PAYMENT:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.DEBIT).first()
+                    elif target_type == VoucherType.PURCHASE:
+                        party_entry = voucher.entries.filter(entry_type=EntryType.CREDIT).first()
+                    
+                    if party_entry:
+                        voucher.party_name = party_entry.ledger.name
+                        voucher.save(update_fields=['party_name'])
+                        
                 messages.success(request, f"{target_type.label} {voucher.number} created successfully.")
                 return redirect(f"{voucher_type.lower()}_list")
             except Exception as e:
@@ -132,4 +150,33 @@ def voucher_create_view(request, voucher_type):
         'company': company,
         'ledger_count': ledger_count,
     }
+
+    if target_type == VoucherType.SALES:
+        # Pass specialized ledgers for Tally-style Sales Form
+        context['debtors'] = Ledger.objects.filter(company=company, group__name__icontains='Debtors')
+        context['sales_ledgers'] = Ledger.objects.filter(company=company, group__name__icontains='Sales')
+        context['tax_ledgers'] = Ledger.objects.filter(company=company, group__name__icontains='Duties')
+        context['stock_items'] = StockItem.objects.filter(company=company)
+        return render(request, 'sales_voucher_form.html', context)
+
+    if target_type == VoucherType.PURCHASE:
+        # Pass specialized ledgers for Tally-style Purchase Form
+        context['creditors'] = Ledger.objects.filter(company=company, group__name__icontains='Creditors')
+        context['purchase_ledgers'] = Ledger.objects.filter(company=company, group__name__icontains='Purchase')
+        context['tax_ledgers'] = Ledger.objects.filter(company=company, group__name__icontains='Duties')
+        context['stock_items'] = StockItem.objects.filter(company=company)
+        return render(request, 'purchase_voucher_form.html', context)
+
+    if target_type == VoucherType.PAYMENT:
+        # Pass specialized ledgers for Tally-style Payment Form
+        context['cash_bank'] = Ledger.objects.filter(company=company, group__name__icontains='Bank') | Ledger.objects.filter(company=company, group__name__icontains='Cash')
+        context['all_ledgers'] = Ledger.objects.filter(company=company)
+        return render(request, 'payment_voucher_form.html', context)
+
+    if target_type == VoucherType.RECEIPT:
+        # Pass specialized ledgers for Tally-style Receipt Form
+        context['cash_bank'] = Ledger.objects.filter(company=company, group__name__icontains='Bank') | Ledger.objects.filter(company=company, group__name__icontains='Cash')
+        context['all_ledgers'] = Ledger.objects.filter(company=company)
+        return render(request, 'receipt_voucher_form.html', context)
+
     return render(request, 'voucher_form.html', context)

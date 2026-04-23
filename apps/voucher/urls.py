@@ -10,4 +10,7 @@ urlpatterns = [
     
     path('receipts/', views.voucher_list_view, {'voucher_type': 'receipts'}, name='receipts_list'),
     path('receipts/new/', views.voucher_create_view, {'voucher_type': 'receipts'}, name='receipts_create'),
+    
+    path('purchases/', views.voucher_list_view, {'voucher_type': 'purchases'}, name='purchases_list'),
+    path('purchases/new/', views.voucher_create_view, {'voucher_type': 'purchases'}, name='purchases_create'),
 ]

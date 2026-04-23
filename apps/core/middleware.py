@@ -60,3 +60,25 @@ class ErrorHandlingMiddleware:
             response_data['error']['traceback'] = tb.split('\n')
 
         return JsonResponse(response_data, status=500)
+
+class ActiveCompanyMiddleware:
+    """
+    Middleware to attach the active company to the request object.
+    Uses the 'active_company_id' stored in the session.
+    If no company is active in session, attaches None.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from company.models import Company
+        active_company_id = request.session.get('active_company_id')
+        request.active_company = None
+        if active_company_id:
+            try:
+                request.active_company = Company.objects.get(id=active_company_id)
+            except Company.DoesNotExist:
+                pass
+        
+        response = self.get_response(request)
+        return response

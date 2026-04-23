@@ -23,12 +23,48 @@ class TallyXMLGenerator:
     """
 
     @staticmethod
-    def get_fetch_ledger_xml():
+    def _get_static_variables(company_name=None, extra_vars=""):
+        company_tag = f'\n                <SVCURRENTCOMPANY>{escape(company_name)}</SVCURRENTCOMPANY>' if company_name else ''
+        return f"""<STATICVARIABLES>
+                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>{company_tag}{extra_vars}
+            </STATICVARIABLES>"""
+
+    @staticmethod
+    def get_fetch_companies_xml():
+        """
+        Returns XML to fetch all companies open in Tally.
+        """
+        return """<ENVELOPE>
+    <HEADER>
+        <VERSION>1</VERSION>
+        <TALLYREQUEST>Export</TALLYREQUEST>
+        <TYPE>COLLECTION</TYPE>
+        <ID>ListOfCompanies</ID>
+    </HEADER>
+    <BODY>
+        <DESC>
+            <STATICVARIABLES>
+                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+            </STATICVARIABLES>
+            <TDL>
+                <TDLMESSAGE>
+                    <COLLECTION NAME="ListOfCompanies" ISINITIALIZE="Yes">
+                        <TYPE>Company</TYPE>
+                        <FETCH>Name, GUID</FETCH>
+                    </COLLECTION>
+                </TDLMESSAGE>
+            </TDL>
+        </DESC>
+    </BODY>
+</ENVELOPE>"""
+
+    @staticmethod
+    def get_fetch_ledger_xml(company_name=None):
         """
         Returns XML to fetch all Ledger masters from Tally using Collection method.
         We explicitly fetch Name, Parent, and OpeningBalance.
         """
-        return """<ENVELOPE>
+        return f"""<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
         <TALLYREQUEST>Export</TALLYREQUEST>
@@ -37,9 +73,7 @@ class TallyXMLGenerator:
     </HEADER>
     <BODY>
         <DESC>
-            <STATICVARIABLES>
-                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-            </STATICVARIABLES>
+            {TallyXMLGenerator._get_static_variables(company_name)}
             <TDL>
                 <TDLMESSAGE>
                     <COLLECTION NAME="LedgersCollection" ISINITIALIZE="Yes">
@@ -53,11 +87,11 @@ class TallyXMLGenerator:
 </ENVELOPE>"""
 
     @staticmethod
-    def get_fetch_stock_item_xml():
+    def get_fetch_stock_item_xml(company_name=None):
         """
         Returns XML to fetch all Stock Items from Tally using Collection method.
         """
-        return """<ENVELOPE>
+        return f"""<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
         <TALLYREQUEST>Export</TALLYREQUEST>
@@ -66,14 +100,12 @@ class TallyXMLGenerator:
     </HEADER>
     <BODY>
         <DESC>
-            <STATICVARIABLES>
-                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-            </STATICVARIABLES>
+            {TallyXMLGenerator._get_static_variables(company_name)}
             <TDL>
                 <TDLMESSAGE>
                     <COLLECTION NAME="StockItemsCollection" ISINITIALIZE="Yes">
                         <TYPE>StockItem</TYPE>
-                        <FETCH>Name, Parent, OpeningBalance, OpeningValue, BaseUnits</FETCH>
+                        <FETCH>Name, Parent, OpeningBalance, OpeningValue, BaseUnits, ClosingBalance, ClosingValue, OpeningRate, ClosingRate</FETCH>
                     </COLLECTION>
                 </TDLMESSAGE>
             </TDL>
@@ -111,7 +143,7 @@ class TallyXMLGenerator:
 </ENVELOPE>"""
 
     @staticmethod
-    def get_fetch_vouchers_xml(voucher_type, from_date, to_date):
+    def get_fetch_vouchers_xml(voucher_type, from_date, to_date, company_name=None):
         """
         Returns XML to fetch vouchers of a specific type within a date range.
         Dates should be 'YYYYMMDD' format.
@@ -125,11 +157,9 @@ class TallyXMLGenerator:
     </HEADER>
     <BODY>
         <DESC>
-            <STATICVARIABLES>
-                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+            {TallyXMLGenerator._get_static_variables(company_name, f'''
                 <SVFROMDATE TYPE="Date">{from_date}</SVFROMDATE>
-                <SVTODATE TYPE="Date">{to_date}</SVTODATE>
-            </STATICVARIABLES>
+                <SVTODATE TYPE="Date">{to_date}</SVTODATE>''')}
             <TDL>
                 <TDLMESSAGE>
                     <COLLECTION NAME="VoucherCollection" ISINITIALIZE="Yes">
@@ -193,6 +223,22 @@ class TallyXMLGenerator:
         )
 
     @staticmethod
+    def get_purchase_voucher_xml(voucher):
+        """
+        Generates a complete Tally Purchase Voucher XML.
+
+        Accounting: Purchase Account (Dr) / Vendor (Cr)
+        Party Detection: First CREDIT entry = Party Ledger (Vendor)
+        """
+        return TallyXMLGenerator._build_voucher_xml(
+            voucher=voucher,
+            vch_type='Purchase',
+            party_from='CREDIT',
+            is_invoice=True,
+            include_inventory=True,
+        )
+
+    @staticmethod
     def get_payment_voucher_xml(voucher):
         """
         Generates a complete Tally Payment Voucher XML.
@@ -249,7 +295,10 @@ class TallyXMLGenerator:
         """
         from voucher.models import EntryType
 
+        import uuid
+        # Tally requires dates in YYYYMMDD format
         tally_date = voucher.date.strftime('%Y%m%d')
+        guid = str(uuid.uuid4())
 
         debit_entries = voucher.entries.filter(entry_type=EntryType.DEBIT).select_related('ledger')
         credit_entries = voucher.entries.filter(entry_type=EntryType.CREDIT).select_related('ledger')
@@ -261,39 +310,71 @@ class TallyXMLGenerator:
         elif party_from == 'CREDIT' and credit_entries.exists():
             party_ledger_name = credit_entries.first().ledger.name
 
-        # ─── Build ALLLEDGERENTRIES.LIST ───
+        # ─── Identify entries that have inventory (stock) transactions ───
+        # These are handled via INVENTORYENTRIES.LIST with ACCOUNTINGALLOCATIONS,
+        # so they must NOT appear again in LEDGERENTRIES.LIST (double-counting).
+        inventory_entry_ids = set()
+        inventory_entries_list = []
+        if include_inventory:
+            for entry in list(debit_entries) + list(credit_entries):
+                if entry.stock_transactions.exists():
+                    inventory_entry_ids.add(entry.id)
+                    inventory_entries_list.append(entry)
+
+        # ─── Build LEDGERENTRIES.LIST / ALLLEDGERENTRIES.LIST ───
+        # Tally convention: If voucher has no inventory, it requires ALLLEDGERENTRIES.LIST
+        # If it has inventory, it requires LEDGERENTRIES.LIST and INVENTORYENTRIES.LIST
+        ledger_tag_name = "LEDGERENTRIES.LIST" if include_inventory else "ALLLEDGERENTRIES.LIST"
+        
         ledger_entries_xml = ''
         for entry in debit_entries:
+            if entry.id in inventory_entry_ids:
+                continue
             ledger_entries_xml += f"""
-                    <ALLLEDGERENTRIES.LIST>
+                    <{ledger_tag_name}>
                         <LEDGERNAME>{escape(entry.ledger.name)}</LEDGERNAME>
                         <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
                         <AMOUNT>-{entry.amount}</AMOUNT>
-                    </ALLLEDGERENTRIES.LIST>"""
+                    </{ledger_tag_name}>"""
 
         for entry in credit_entries:
+            if entry.id in inventory_entry_ids:
+                continue
             ledger_entries_xml += f"""
-                    <ALLLEDGERENTRIES.LIST>
+                    <{ledger_tag_name}>
                         <LEDGERNAME>{escape(entry.ledger.name)}</LEDGERNAME>
                         <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
                         <AMOUNT>{entry.amount}</AMOUNT>
-                    </ALLLEDGERENTRIES.LIST>"""
+                    </{ledger_tag_name}>"""
 
-        # ─── Build ALLINVENTORYENTRIES.LIST (optional) ───
+        # ─── Build INVENTORYENTRIES.LIST (optional) ───
         inventory_xml = ''
         if include_inventory:
-            for entry in credit_entries:
+            for entry in inventory_entries_list:
+                is_debit = entry.entry_type == EntryType.DEBIT
+                is_deemed_positive = 'Yes' if is_debit else 'No'
+                # Tally convention: Debit amounts are negative, Credit amounts are positive
+                sign = '-' if is_debit else ''
+                
                 stock_txs = entry.stock_transactions.select_related('stock_item').all()
                 for tx in stock_txs:
+                    unit = escape(tx.stock_item.unit_of_measure or 'Nos')
+                    amt = f"{sign}{tx.quantity * tx.rate}"
+                    
                     inventory_xml += f"""
-                    <ALLINVENTORYENTRIES.LIST>
+                    <INVENTORYENTRIES.LIST>
                         <STOCKITEMNAME>{escape(tx.stock_item.name)}</STOCKITEMNAME>
-                        <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-                        <RATE>{tx.rate}</RATE>
-                        <AMOUNT>{tx.quantity * tx.rate}</AMOUNT>
-                        <ACTUALQTY>{tx.quantity} {escape(tx.stock_item.unit_of_measure)}</ACTUALQTY>
-                        <BILLEDQTY>{tx.quantity} {escape(tx.stock_item.unit_of_measure)}</BILLEDQTY>
-                    </ALLINVENTORYENTRIES.LIST>"""
+                        <ISDEEMEDPOSITIVE>{is_deemed_positive}</ISDEEMEDPOSITIVE>
+                        <RATE>{tx.rate}/{unit}</RATE>
+                        <AMOUNT>{amt}</AMOUNT>
+                        <ACTUALQTY>{tx.quantity} {unit}</ACTUALQTY>
+                        <BILLEDQTY>{tx.quantity} {unit}</BILLEDQTY>
+                        <ACCOUNTINGALLOCATIONS.LIST>
+                            <LEDGERNAME>{escape(entry.ledger.name)}</LEDGERNAME>
+                            <ISDEEMEDPOSITIVE>{is_deemed_positive}</ISDEEMEDPOSITIVE>
+                            <AMOUNT>{amt}</AMOUNT>
+                        </ACCOUNTINGALLOCATIONS.LIST>
+                    </INVENTORYENTRIES.LIST>"""
 
         has_inventory = 'Yes' if inventory_xml else 'No'
         invoice_tag = '\n                        <ISINVOICE>Yes</ISINVOICE>' if is_invoice else ''
@@ -311,7 +392,10 @@ class TallyXMLGenerator:
             <REQUESTDATA>
                 <TALLYMESSAGE xmlns:UDF="TallyUDF">
                     <VOUCHER VCHTYPE="{vch_type}" ACTION="Create">
+                        <GUID>{guid}</GUID>
                         <DATE>{tally_date}</DATE>
+                        <EFFECTIVEDATE>{tally_date}</EFFECTIVEDATE>
+                        <VCHSTATUSDATE>{tally_date}</VCHSTATUSDATE>
                         <VOUCHERTYPENAME>{vch_type}</VOUCHERTYPENAME>
                         <VOUCHERNUMBER>{escape(voucher.number)}</VOUCHERNUMBER>
                         <PARTYLEDGERNAME>{escape(party_ledger_name)}</PARTYLEDGERNAME>
@@ -348,28 +432,76 @@ class TallyXMLParser:
         return xml_string
 
     @staticmethod
+    def parse_companies(xml_content):
+        """Parses Tally companies."""
+        try:
+            xml_content = TallyXMLParser.sanitize_xml(xml_content)
+            root = ET.fromstring(xml_content)
+            companies = []
+            for comp_node in root.iter('COMPANY'):
+                name = comp_node.findtext('NAME')
+                guid = comp_node.findtext('GUID')
+                if name:
+                    companies.append({
+                        'name': name.strip(),
+                        'guid': guid.strip() if guid else None
+                    })
+            return companies
+        except Exception as e:
+            logger.error(f"Failed to parse Tally companies XML: {str(e)}")
+            return []
+
+    @staticmethod
+    def _extract_quantity(raw_str):
+        """
+        Extracts the numeric quantity from Tally's quantity format.
+        Examples: ' 50 Nos' -> 50, '100 Nos' -> 100, '0' -> 0, '' -> 0
+        """
+        if not raw_str:
+            return Decimal('0')
+        raw_str = raw_str.strip()
+        if not raw_str:
+            return Decimal('0')
+        # Take only the numeric part (before any space/unit suffix)
+        import re
+        match = re.match(r'[\s]*([\d.\-]+)', raw_str)
+        if match:
+            return Decimal(match.group(1))
+        return Decimal('0')
+
+    @staticmethod
     def parse_stock_items(xml_content):
-        """Parses Tally stock items."""
+        """Parses Tally stock items with opening/closing quantities and groups."""
         try:
             xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
             items = []
             for item_node in root.iter('STOCKITEM'):
                 name = item_node.get('NAME') or (item_node.find('NAME').text if item_node.find('NAME') is not None else None)
-                if name:
-                    opening_str = item_node.findtext('OPENINGBALANCE', '0').strip()
-                    numeric_part = opening_str.split(' ')[0] if opening_str else '0'
-                    if not numeric_part: 
-                        numeric_part = '0'
-                        
-                    items.append({
-                        'name': name.strip(),
-                        'parent': item_node.findtext('PARENT', 'Primary').strip(),
-                        'opening_balance': Decimal(numeric_part),
-                        'unit_of_measure': item_node.findtext('BASEUNITS', 'Nos')
-                    })
+                if not name:
+                    continue
+                name = name.strip()
+                # Skip CMPINFO's <STOCKITEM>0</STOCKITEM> nodes
+                if not name or name == '0':
+                    continue
+
+                opening_qty = TallyXMLParser._extract_quantity(
+                    item_node.findtext('OPENINGBALANCE', '0')
+                )
+                closing_qty = TallyXMLParser._extract_quantity(
+                    item_node.findtext('CLOSINGBALANCE', '0')
+                )
+
+                items.append({
+                    'name': name,
+                    'parent': item_node.findtext('PARENT', 'Primary').strip(),
+                    'opening_balance': opening_qty,
+                    'closing_balance': closing_qty,
+                    'unit_of_measure': item_node.findtext('BASEUNITS', 'Nos').strip(),
+                })
             return items
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to parse stock items: {str(e)}")
             return []
 
     @staticmethod
@@ -392,7 +524,9 @@ class TallyXMLParser:
                     'entries': []
                 }
                 # Basic Ledger Entries
-                for l_entry in v_node.iter('ALLLEDGERENTRIES.LIST'):
+                # Tally can output either ALLLEDGERENTRIES.LIST or LEDGERENTRIES.LIST
+                import itertools
+                for l_entry in itertools.chain(v_node.iter('ALLLEDGERENTRIES.LIST'), v_node.iter('LEDGERENTRIES.LIST')):
                     ledger_name = l_entry.findtext('LEDGERNAME')
                     if not ledger_name:
                         continue
@@ -408,8 +542,15 @@ class TallyXMLParser:
                     if not stock_item:
                         continue
                         
+                    # Extract ledger name from Accounting Allocations if present
+                    ledger_name = None
+                    alloc_list = inv_entry.find('ACCOUNTINGALLOCATIONS.LIST')
+                    if alloc_list is not None:
+                        ledger_name = alloc_list.findtext('LEDGERNAME')
+                        
                     v_data['entries'].append({
                         'stock_item': stock_item,
+                        'ledger': ledger_name,
                         'quantity': Decimal(inv_entry.findtext('BILLEDQTY', '0').split(' ')[0] or '0'),
                         'amount': abs(Decimal(inv_entry.findtext('AMOUNT', '0'))),
                         'is_debit': Decimal(inv_entry.findtext('AMOUNT', '0')) < 0
@@ -471,31 +612,48 @@ class TallyXMLParser:
     def extract_error_message(xml_content):
         """
         Deep search for error messages in a Tally Import response.
-        Captures <LINEERROR>, <ERROR>, and <ERRORMSG> tags.
+        Captures LINEERROR, ERROR, ERRORMSG, DESC, and other common tags.
         """
         try:
             xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
-            error_tags = ('LINEERROR', 'ERROR', 'ERRORMSG')
+            error_tags = (
+                'LINEERROR', 'ERROR', 'ERRORMSG', 'DESC',
+                'DESCRIPTION', 'ERRDESC', 'SVCERROR',
+            )
             errors = [
-                node.text for node in root.iter()
-                if node.tag in error_tags and node.text
+                node.text.strip() for node in root.iter()
+                if node.tag in error_tags and node.text and node.text.strip()
             ]
-            return " | ".join(errors) if errors else None
-        except Exception:
-            return "Unknown XML Parse Error"
+            if errors:
+                return " | ".join(errors)
+
+            # Fallback: check if CREATED and ALTERED are 0 and show raw text
+            created = root.findtext('.//CREATED', '0')
+            altered = root.findtext('.//ALTERED', '0')
+            if created == '0' and altered == '0':
+                # Try to get any text content as a clue
+                all_text = ' '.join(
+                    t.strip() for t in root.itertext() if t.strip()
+                )
+                return f"Import failed (Created=0, Altered=0). Raw: {all_text[:500]}"
+
+            return "Unknown error (no error tags found in response)"
+        except Exception as e:
+            return f"XML Parse Error: {str(e)}"
 
     @staticmethod
     def is_import_successful(xml_content):
         """
-        Checks if the master/voucher creation was successful.
-        Looks for <CREATED>1</CREATED> in the response.
+        Checks if the master/voucher creation or alteration was successful.
+        Looks for <CREATED>1</CREATED> or <ALTERED>1</ALTERED> in the response.
         """
         try:
             xml_content = TallyXMLParser.sanitize_xml(xml_content)
             root = ET.fromstring(xml_content)
-            created_node = root.find('.//CREATED')
-            return created_node is not None and created_node.text == '1'
+            created = root.findtext('.//CREATED', '0')
+            altered = root.findtext('.//ALTERED', '0')
+            return int(created) > 0 or int(altered) > 0
         except Exception:
             return False
 

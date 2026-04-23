@@ -36,6 +36,42 @@ class TallySyncService:
         self.generator = TallyXMLGenerator()
         self.parser = TallyXMLParser()
 
+    @classmethod
+    def fetch_all_tally_companies(cls, user):
+        """
+        Fetches all open companies from Tally and syncs them to the local database.
+        Returns a list of Company objects.
+        """
+        client = TallyClient()
+        generator = TallyXMLGenerator()
+        parser = TallyXMLParser()
+        
+        try:
+            xml_request = generator.get_fetch_companies_xml()
+            xml_response = client.post_with_retry(xml_request)
+            tally_companies = parser.parse_companies(xml_response)
+            
+            from company.models import Company
+            synced_companies = []
+            
+            for comp_data in tally_companies:
+                company, created = Company.objects.update_or_create(
+                    name=comp_data['name'],
+                    defaults={
+                        'financial_year_start': timezone.now().date().replace(month=4, day=1),
+                        'financial_year_end': timezone.now().date().replace(year=timezone.now().year+1, month=3, day=31),
+                    }
+                )
+                if created:
+                    company.created_by = user
+                    company.save(update_fields=['created_by'])
+                synced_companies.append(company)
+                
+            return synced_companies
+        except Exception as e:
+            logger.error(f"Failed to fetch companies from Tally: {str(e)}")
+            raise
+
     # =========================================================================
     # LEDGER SYNC (Inward — Tally → Django)
     # =========================================================================
@@ -55,7 +91,7 @@ class TallySyncService:
         )
 
         try:
-            xml_request = self.generator.get_fetch_ledger_xml()
+            xml_request = self.generator.get_fetch_ledger_xml(company_name=self.company.name)
             xml_response = self.client.post_with_retry(xml_request)
 
             tally_ledgers = self.parser.parse_ledgers(xml_response)
@@ -133,7 +169,7 @@ class TallySyncService:
             status=SyncStatus.FAILED
         )
         try:
-            xml_request = self.generator.get_fetch_stock_item_xml()
+            xml_request = self.generator.get_fetch_stock_item_xml(company_name=self.company.name)
             xml_response = self.client.post_with_retry(xml_request)
             tally_items = self.parser.parse_stock_items(xml_response)
 
@@ -166,6 +202,7 @@ class TallySyncService:
                         'group': group,
                         'unit_of_measure': item['unit_of_measure'],
                         'opening_stock_qty': item['opening_balance'],
+                        'closing_stock_qty': item.get('closing_balance', 0),
                         'tally_id': item['name'],
                         'sync_status': ModelSyncStatus.SYNCED,
                         'last_synced_at': timezone.now(),
@@ -210,9 +247,13 @@ class TallySyncService:
                 log.save()
                 return True
 
+            parent_group = ledger.group.name if ledger.group else 'Suspense A/c'
+            if parent_group.lower() == 'primary':
+                parent_group = 'Suspense A/c'
+                
             xml_request = self.generator.get_create_ledger_xml(
                 name=ledger.name,
-                parent=ledger.group.name,
+                parent=parent_group,
                 opening_balance=ledger.opening_balance
             )
             xml_response = self.client.post_with_retry(xml_request)
@@ -265,6 +306,20 @@ class TallySyncService:
             expected_type=VoucherType.SALES,
             xml_generator=self.generator.get_sales_voucher_xml,
             label='Sales',
+        )
+
+    @transaction.atomic
+    def push_purchase_voucher_to_tally(self, voucher):
+        """
+        Pushes a Purchase Voucher to Tally.
+
+        Accounting: Purchase Account (Dr) / Vendor (Cr)
+        """
+        return self._push_voucher_to_tally(
+            voucher=voucher,
+            expected_type=VoucherType.PURCHASE,
+            xml_generator=self.generator.get_purchase_voucher_xml,
+            label='Purchase',
         )
 
     @transaction.atomic
@@ -370,6 +425,24 @@ class TallySyncService:
                 )
                 log.save()
                 return False
+
+            # ─── AUTO-CREATE LEDGERS IN TALLY ───
+            logger.info(f"Auto-ensuring ledgers exist in Tally for '{voucher.number}'")
+            for entry in entries:
+                ledger = entry.ledger
+                parent_group = ledger.group.name if ledger.group else 'Sundry Debtors'
+                if parent_group.lower() == 'primary':
+                    parent_group = 'Suspense A/c'
+                ledger_xml = self.generator.get_create_ledger_xml(
+                    name=ledger.name,
+                    parent=parent_group,
+                    opening_balance=0
+                )
+                try:
+                    self.client.post_with_retry(ledger_xml)
+                    logger.info(f"  Ensured ledger '{ledger.name}' under '{parent_group}' in Tally")
+                except Exception as le:
+                    logger.warning(f"  Ledger '{ledger.name}' push note: {le}")
 
             # ─── GENERATE XML ───
             logger.info(f"Generating {label} Voucher XML for '{voucher.number}'")
@@ -516,6 +589,8 @@ class TallySyncService:
                 result = self.push_payment_voucher_to_tally(voucher)
             elif voucher.voucher_type == VoucherType.RECEIPT:
                 result = self.push_receipt_voucher_to_tally(voucher)
+            elif voucher.voucher_type == VoucherType.PURCHASE:
+                result = self.push_purchase_voucher_to_tally(voucher)
             else:
                 logger.warning(f"Batch Sync: Unsupported voucher type '{voucher.voucher_type}' for '{voucher.number}'")
                 continue
@@ -570,7 +645,8 @@ class TallySyncService:
             xml_request = self.generator.get_fetch_vouchers_xml(
                 voucher_type=voucher_type_label,
                 from_date=fd,
-                to_date=td
+                to_date=td,
+                company_name=self.company.name
             )
             xml_response = self.client.post_with_retry(xml_request)
             tally_vouchers = self.parser.parse_vouchers_fetch(xml_response)
@@ -608,10 +684,10 @@ class TallySyncService:
                 voucher, created = Voucher.objects.update_or_create(
                     company=self.company,
                     tally_id=vid,
+                    voucher_type=target_type,
                     defaults={
                         'number': vid,
                         'date': v_date,
-                        'voucher_type': target_type,
                         'narration': v_data.get('narration') or '',
                         'party_name': v_data.get('party_name') or '',
                         'is_posted': True,

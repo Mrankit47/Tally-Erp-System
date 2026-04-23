@@ -34,34 +34,49 @@ class Command(BaseCommand):
             ('Income', None),
             ('Expenses', None),
 
-            # Secondary Groups under Assets
+            # ── Assets ──
             ('Current Assets', 'Assets'),
             ('Fixed Assets', 'Assets'),
             ('Investments', 'Assets'),
             ('Loans & Advances (Asset)', 'Assets'),
-            ('Stock-in-hand', 'Current Assets'),
-            ('Cash-in-hand', 'Current Assets'),
+            ('Misc. Expenses (ASSET)', 'Assets'),
+            ('Stock-in-Hand', 'Current Assets'),
+            ('Cash-in-Hand', 'Current Assets'),
             ('Bank Accounts', 'Current Assets'),
-            ('Sundry Debtors', 'Current Assets'), # Parties - Customers
+            ('Deposits (Asset)', 'Current Assets'),
+            ('Sundry Debtors', 'Current Assets'),
+            ('Bank OCC A/c', 'Bank Accounts'),
 
-            # Secondary Groups under Liabilities
+            # ── Liabilities ──
             ('Current Liabilities', 'Liabilities'),
-            ('Loans (Liability)', 'Liabilities'),
             ('Capital Account', 'Liabilities'),
+            ('Loans (Liability)', 'Liabilities'),
             ('Reserves & Surplus', 'Liabilities'),
-            ('Sundry Creditors', 'Current Liabilities'), # Parties - Suppliers
-            ('Duties & Taxes', 'Current Liabilities'),   # GST / TDS
+            ('Retained Earnings', 'Reserves & Surplus'),
+            ('Sundry Creditors', 'Current Liabilities'),
+            ('Duties & Taxes', 'Current Liabilities'),
             ('Provisions', 'Current Liabilities'),
+            ('Secured Loans', 'Loans (Liability)'),
+            ('Unsecured Loans', 'Loans (Liability)'),
+            ('Bank OD A/c', 'Loans (Liability)'),
+            ('Suspense A/c', 'Current Liabilities'),
 
-            # Secondary Groups under Income
+            # ── Income ──
             ('Sales Accounts', 'Income'),
             ('Direct Incomes', 'Income'),
             ('Indirect Incomes', 'Income'),
+            ('Income (Direct)', 'Direct Incomes'),
+            ('Income (Indirect)', 'Indirect Incomes'),
 
-            # Secondary Groups under Expenses
+            # ── Expenses ──
             ('Purchase Accounts', 'Expenses'),
             ('Direct Expenses', 'Expenses'),
             ('Indirect Expenses', 'Expenses'),
+            ('Expenses (Direct)', 'Direct Expenses'),
+            ('Expenses (Indirect)', 'Indirect Expenses'),
+
+            # ── Other ──
+            ('Branch / Divisions', None),
         ]
 
         # Indian Taxation specialized groups (Subgroups of Duties & Taxes)

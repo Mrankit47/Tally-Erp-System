@@ -8,18 +8,36 @@ from company.models import Company
 from voucher.models import Voucher, VoucherType
 from .services import TallySyncService
 
+
+def _get_active_company(request):
+    """
+    Helper to get the active company from the request (set by middleware).
+    Returns (company, error_response) — if error_response is not None, return it immediately.
+    """
+    company = getattr(request, 'active_company', None)
+    if not company:
+        return None, JsonResponse(
+            {'status': 'error', 'message': 'No company selected. Please select a company first.'},
+            status=400
+        )
+    return company, None
+
+
 @login_required
 @role_required(['Admin', 'Accountant'])
 @require_POST
 def sync_single_voucher_view(request, voucher_id):
     """AJAX endpoint to sync a specific voucher to Tally."""
-    company = Company.objects.first()
+    company, error = _get_active_company(request)
+    if error:
+        return error
     voucher = get_object_or_404(Voucher, id=voucher_id, company=company)
     service = TallySyncService(company, request.user)
     
     # Map voucher type to service method
     type_method_map = {
         VoucherType.SALES: service.push_sales_voucher_to_tally,
+        VoucherType.PURCHASE: service.push_purchase_voucher_to_tally,
         VoucherType.PAYMENT: service.push_payment_voucher_to_tally,
         VoucherType.RECEIPT: service.push_receipt_voucher_to_tally,
     }
@@ -47,7 +65,9 @@ def delete_sync_log_view(request, log_id):
     - FETCH: Deletes newly created ERP records.
     - PUSH: Resets ERP records to 'PENDING'.
     """
-    company = Company.objects.first()
+    company, error = _get_active_company(request)
+    if error:
+        return error
     log = get_object_or_404(SyncLog, id=log_id, company=company)
     
     synced_ids = log.synced_ids or []
@@ -93,7 +113,9 @@ def delete_sync_log_view(request, log_id):
 @require_POST
 def sync_ledgers_view(request):
     """AJAX endpoint to trigger full ledger sync from Tally."""
-    company = Company.objects.first()
+    company, error = _get_active_company(request)
+    if error:
+        return error
     service = TallySyncService(company, request.user)
     try:
         count = service.sync_ledgers_from_tally()

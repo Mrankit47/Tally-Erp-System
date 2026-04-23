@@ -20,7 +20,7 @@ from .forms import StockItemForm
 @role_required(['Admin', 'Accountant', 'InventoryManager'])
 def stock_item_list_view(request):
     """List view for all inventory Stock Items."""
-    company = Company.objects.first()
+    company = getattr(request, 'active_company', None)
     
     # Using generic select_related, and relying on current_quantity property. 
     # For large datasets we would annotate this in the DB, but property is fine for initial MVP.
@@ -42,7 +42,7 @@ def stock_item_list_view(request):
 @role_required(['Admin', 'Accountant', 'InventoryManager'])
 def stock_item_create_view(request):
     """View to register a new Stock Item."""
-    company = Company.objects.first()
+    company = getattr(request, 'active_company', None)
     
     if request.method == 'POST':
         form = StockItemForm(request.POST)
