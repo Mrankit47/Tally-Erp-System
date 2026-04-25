@@ -75,4 +75,12 @@ def create_voucher_with_entries(company, user, voucher_type, date, narration, en
         # 4. Final verification (triggers model clean())
         voucher.full_clean()
         
+    # 5. Apply GST if applicable (Safe Extension)
+    try:
+        from taxation.services.voucher_gst_service import apply_gst_to_voucher
+        apply_gst_to_voucher(voucher)
+    except ImportError:
+        # If taxation app is not installed or service is missing, fail silently
+        pass
+        
     return voucher

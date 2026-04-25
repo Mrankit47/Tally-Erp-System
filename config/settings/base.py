@@ -74,6 +74,8 @@ LOCAL_APPS = [
     'inventory',
     'reports',
     'tally_integration',
+    'taxation',
+    'invoicing',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -320,5 +322,6 @@ LOGGING = {
 # AUTHENTICATION
 # =============================================================================
 
-LOGIN_URL = '/admin/login/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'landing'

@@ -82,3 +82,74 @@ class UserViewSet(viewsets.ModelViewSet):
         """Return the currently authenticated user's profile."""
         serializer = UserDetailSerializer(request.user)
         return Response({'success': True, 'data': serializer.data})
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .decorators import admin_only
+from .models import User, UserProfile, Role
+from django.contrib import messages
+
+@login_required
+@admin_only
+def user_management_view(request):
+    """List all users and their roles for management."""
+    users = User.objects.all().select_related('profile__role')
+    roles = Role.objects.all()
+    context = {
+        'users': users,
+        'roles': roles,
+    }
+    return render(request, 'accounts/user_management.html', context)
+
+@login_required
+@admin_only
+def update_user_role(request):
+    """Update a user's role from the dashboard."""
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        role_id = request.POST.get('role_id')
+        
+        user = get_object_or_404(User, id=user_id)
+        role = get_object_or_404(Role, id=role_id)
+        
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.role = role
+        profile.save()
+        
+        messages.success(request, f"Role for {user.username} updated to {role.name}.")
+    
+    return redirect('user_management')
+
+@login_required
+@admin_only
+def role_management_view(request):
+    """Create and list roles from the dashboard."""
+    if request.method == 'POST':
+        role_name = request.POST.get('role_name')
+        if role_name:
+            Role.objects.get_or_create(name=role_name)
+            messages.success(request, f"Role '{role_name}' created successfully.")
+            
+    roles = Role.objects.all()
+    return render(request, 'accounts/role_management.html', {'roles': roles})
+@login_required
+@admin_only
+def create_user_dashboard_view(request):
+    """Create a new system user from the dashboard."""
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        role_id = request.POST.get('role_id')
+        
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f"Username '{username}' already exists.")
+        else:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            if role_id:
+                role = Role.objects.get(id=role_id)
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+                profile.role = role
+                profile.save()
+            messages.success(request, f"User {username} created successfully.")
+            
+    return redirect('user_management')

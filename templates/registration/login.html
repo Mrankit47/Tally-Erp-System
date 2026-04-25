@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — NextGen ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'sans': ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 min-h-screen flex items-center justify-center p-6">
+
+    <div class="w-full max-w-md space-y-8 animate-fade-in">
+        
+        <!-- Logo -->
+        <div class="text-center space-y-4">
+            <a href="/" class="inline-flex items-center gap-2">
+                <div class="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center shadow-xl shadow-brand-500/20">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+                <span class="text-2xl font-extrabold tracking-tight text-slate-900">NextGen <span class="text-brand-600">ERP</span></span>
+            </a>
+            <h2 class="text-3xl font-extrabold text-slate-900">Welcome Back</h2>
+            <p class="text-slate-500 font-medium italic">Secure access to your financial dashboard</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="bg-white p-8 rounded-[2rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.1)] border border-slate-100">
+            {% if form.errors %}
+            <div class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm font-medium flex items-center gap-3">
+                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Invalid username or password.
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                <div class="space-y-1">
+                    <label for="id_username" class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Username</label>
+                    <input type="text" name="username" id="id_username" required 
+                           class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all text-sm font-medium" 
+                           placeholder="Enter your username">
+                </div>
+                <div class="space-y-1">
+                    <label for="id_password" class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Password</label>
+                    <input type="password" name="password" id="id_password" required 
+                           class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all text-sm font-medium" 
+                           placeholder="••••••••">
+                </div>
+                
+                <div class="flex items-center justify-between pt-2">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" class="w-4 h-4 rounded border-slate-200 text-brand-600 focus:ring-brand-500 transition-all">
+                        <span class="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">Remember Me</span>
+                    </label>
+                    <a href="#" class="text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group">
+                    Sign In to ERP
+                    <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </button>
+            </form>
+        </div>
+
+        <!-- Helper -->
+        <p class="text-center text-sm text-slate-400 font-medium">
+            Don't have an account? <span class="text-slate-900">Contact your Administrator</span>
+        </p>
+    </div>
+
+    <style>
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeInUp 0.6s ease-out forwards; }
+    </style>
+</body>
+</html>

@@ -21,6 +21,17 @@ from tally_integration.services import TallySyncService
 from company.models import Company
 from ledger.models import LedgerGroup, Ledger, Currency, Budget, Scenario
 from inventory.models import StockGroup, StockCategory, StockItem, Unit, Location
+from taxation.models import GSTProfile, HSNCode, TaxRate
+
+
+def landing_view(request):
+    """
+    Public landing page for the ERP system.
+    If the user is already logged in, redirect them to the dashboard.
+    """
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'landing.html')
 
 
 @login_required
@@ -290,11 +301,18 @@ def masters_hub_view(request):
         {'slug': 'location', 'label': 'Location (Godown)'},
     ]
     
+    statutory_masters = [
+        {'slug': 'gstprofile', 'label': 'GST Profile'},
+        {'slug': 'hsncode', 'label': 'HSN Code'},
+        {'slug': 'taxrate', 'label': 'Tax Rate'},
+    ]
+    
     return render(request, 'masters_hub.html', {
         'active_page': 'masters',
         'company': company,
         'accounting_masters': accounting_masters,
         'inventory_masters': inventory_masters,
+        'statutory_masters': statutory_masters,
     })
 
 
@@ -319,6 +337,9 @@ def generic_master_view(request, slug):
         'stockitem': (StockItem, 'Stock Item'),
         'unit': (Unit, 'Unit of Measure'),
         'location': (Location, 'Location (Godown)'),
+        'gstprofile': (GSTProfile, 'GST Profile'),
+        'hsncode': (HSNCode, 'HSN Code'),
+        'taxrate': (TaxRate, 'Tax Rate'),
     }
     
     if slug not in master_map:

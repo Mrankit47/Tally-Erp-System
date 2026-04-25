@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from apps.core.views import (
+    landing_view,
     dashboard_view, 
     sync_logs_view, 
     trigger_sync_view, 
@@ -68,14 +69,19 @@ api_v1_patterns = [
 # =============================================================================
 
 urlpatterns = [
+    # ─── Public Landing Page ───
+    path('', landing_view, name='landing'),
+    
     # ─── Dashboard UI ───
-    path('', dashboard_view, name='dashboard'),
+    path('dashboard/', dashboard_view, name='dashboard'),
     path('sync-logs/', sync_logs_view, name='sync-logs'),
     path('about-project/', about_project_view, name='about-project'),
     path('reports/', include('reports.urls')),
     path('vouchers/', include('voucher.urls')),
     path('masters/', include('ledger.urls')),
     path('inventory/', include('inventory.urls')),
+    path('invoicing/', include('invoicing.urls')),
+    path('accounts/', include('accounts.urls')),
     
     # --- Masters Hub ---
     path('masters/hub/', masters_hub_view, name='masters_hub'),

@@ -70,6 +70,7 @@
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Party & Narration</th>
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-right">Amount</th>
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center border-l border-gray-100">ERP Status</th>
+                        <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center">Documents</th>
                         <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-center">Tally Sync</th>
                     </tr>
                 </thead>
@@ -99,6 +100,20 @@
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
                                 <span class="w-1 h-1 rounded-full bg-amber-500"></span>
                                 DRAFT
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if voucher.status == 'APPROVED' %}
+                            <a href="{% url 'invoice_pdf_download' voucher.id %}" 
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-[10px] font-bold border border-brand-100 hover:bg-brand-600 hover:text-white transition-all shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                DOWNLOAD PDF
+                            </a>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1.5 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-bold border border-amber-100 italic" title="Invoice not approved yet">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                APPROVAL PENDING
                             </span>
                             {% endif %}
                         </td>
@@ -237,6 +252,40 @@
                 }
             });
         });
+
+        // ─── Voucher Approval Handler ───
+        document.querySelectorAll('.approve-voucher-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const voucherId = this.dataset.id;
+                const originalContent = this.innerHTML;
+                
+                if (!confirm('Are you sure you want to approve this voucher? It will become immutable and ready for invoicing.')) return;
+
+                this.disabled = true;
+                this.innerHTML = `<svg class="w-3 h-3 animate-spin inline-block mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4m2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> APPROVING...`;
+
+                try {
+                    const response = await fetch(`/vouchers/approve-voucher/${voucherId}/`, {
+                        method: 'POST',
+                        headers: headers
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok && data.status === 'success') {
+                        window.location.reload();
+                    } else {
+                        alert('Approval Error: ' + (data.message || 'Permission Denied'));
+                        this.disabled = false;
+                        this.innerHTML = originalContent;
+                    }
+                } catch (err) {
+                    alert('Connection Error: Could not reach the server.');
+                    this.disabled = false;
+                    this.innerHTML = originalContent;
+                }
+            });
+        });
+
         // ─── Import Modal Handlers ───
         const importModal = document.getElementById('import-modal');
         const openModalBtn = document.getElementById('import-tally-btn');

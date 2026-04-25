@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice {{ invoice.invoice_number }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt;
+            color: #333;
+            line-height: 1.4;
+        }
+        .header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .company-info {
+            float: left;
+            width: 60%;
+        }
+        .invoice-meta {
+            float: right;
+            width: 35%;
+            text-align: right;
+        }
+        .clear {
+            clear: both;
+        }
+        .section-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .details-container {
+            margin-bottom: 30px;
+        }
+        .billing-to {
+            float: left;
+            width: 50%;
+        }
+        .shipping-to {
+            float: right;
+            width: 50%;
+            text-align: right;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th {
+            background-color: #f2f2f2;
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 9pt;
+        }
+        table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            vertical-align: top;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals-section {
+            float: right;
+            width: 40%;
+        }
+        .totals-table td {
+            border: none;
+            padding: 4px 0;
+        }
+        .grand-total {
+            border-top: 1px solid #333 !important;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+        .gst-summary {
+            font-size: 8pt;
+            margin-top: 20px;
+            border: 1px solid #eee;
+            padding: 10px;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 8pt;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+        .signature {
+            margin-top: 50px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="company-info">
+            <h1 style="margin: 0; color: #000;">{{ company.name }}</h1>
+            <p style="margin: 5px 0;">
+                {{ company.address|linebreaksbr }}<br>
+                <strong>GSTIN:</strong> {{ gst_profile.gstin|default:"N/A" }}<br>
+                <strong>State:</strong> {{ gst_profile.state }} (Code: {{ gst_profile.state_code }})
+            </p>
+        </div>
+        <div class="invoice-meta">
+            <h2 style="margin: 0; color: #666;">TAX INVOICE</h2>
+            <p style="margin: 5px 0;">
+                <strong>Invoice No:</strong> {{ invoice.invoice_number }}<br>
+                <strong>Date:</strong> {{ invoice.invoice_date|date:"d-M-Y" }}<br>
+                <strong>Due Date:</strong> {{ invoice.due_date|date:"d-M-Y" }}
+            </p>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="details-container">
+        <div class="billing-to">
+            <div class="section-title">Billing To</div>
+            <strong>{{ invoice.customer_name }}</strong><br>
+            {{ invoice.billing_address|linebreaksbr }}<br>
+            <strong>GSTIN:</strong> {{ invoice.customer_gstin|default:"Unregistered" }}
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 45%;">Description</th>
+                <th style="width: 10%;">HSN/SAC</th>
+                <th style="width: 10%;" class="text-right">Qty</th>
+                <th style="width: 15%;" class="text-right">Rate</th>
+                <th style="width: 15%;" class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ entry.ledger.name }}</td>
+                <td>{{ entry.hsn_code.code|default:"—" }}</td>
+                <td class="text-right">{{ entry.quantity|default:"1.00" }}</td>
+                <td class="text-right">{{ entry.rate|default:entry.amount }}</td>
+                <td class="text-right">{{ entry.amount }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="width: 100%;">
+        <div style="float: left; width: 55%;">
+            {% if tax_details %}
+            <div class="gst-summary">
+                <div class="section-title" style="margin-bottom: 5px;">GST Breakdown</div>
+                <table style="margin-bottom: 0; font-size: 8pt;">
+                    <tr>
+                        <td>CGST</td>
+                        <td class="text-right">{{ tax_details.cgst_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td>SGST</td>
+                        <td class="text-right">{{ tax_details.sgst_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td>IGST</td>
+                        <td class="text-right">{{ tax_details.igst_amount }}</td>
+                    </tr>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal (Taxable)</td>
+                    <td class="text-right">{{ invoice.total_amount }}</td>
+                </tr>
+                <tr>
+                    <td>Total Tax</td>
+                    <td class="text-right">{{ invoice.total_tax }}</td>
+                </tr>
+                <tr class="grand-total">
+                    <td><strong>Grand Total ({{ invoice.currency }})</strong></td>
+                    <td class="text-right"><strong>{{ invoice.grand_total }}</strong></td>
+                </tr>
+            </table>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="signature">
+        <p>For <strong>{{ company.name }}</strong></p>
+        <br><br>
+        <p>Authorized Signatory</p>
+    </div>
+
+    <div class="footer">
+        Generated by ERP System | Thank you for your business.
+    </div>
+
+</body>
+</html>
