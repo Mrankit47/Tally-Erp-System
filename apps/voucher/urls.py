@@ -16,4 +16,7 @@ urlpatterns = [
     
     # Approval Workflow
     path('approve-voucher/<uuid:voucher_id>/', views.approve_voucher_view, name='approve_voucher'),
+    
+    # Detail View
+    path('view/<uuid:voucher_id>/', views.voucher_detail_view, name='voucher_detail'),
 ]

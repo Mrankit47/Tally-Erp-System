@@ -17,12 +17,16 @@ def role_required(allowed_roles):
             if request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
 
-            # Check UserProfile for the assigned role
+            # 1. Check UserProfile Role
             user_role = None
             if hasattr(request.user, 'profile') and request.user.profile.role:
-                user_role = request.user.profile.role.name
+                user_role = request.user.profile.role.name.strip()
 
             if user_role in allowed_roles:
+                return view_func(request, *args, **kwargs)
+
+            # 2. Check Django Groups (Fallback)
+            if request.user.groups.filter(name__in=allowed_roles).exists():
                 return view_func(request, *args, **kwargs)
 
             # Raise 403 if role doesn't match

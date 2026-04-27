@@ -1,6 +1,7 @@
 """
 RBAC Role definitions and Permissions.
 """
+from functools import wraps
 from django.contrib.auth.decorators import user_passes_test
 from django.core.exceptions import PermissionDenied
 
@@ -24,12 +25,16 @@ def role_required(allowed_roles):
             if request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
             
-            # Check for role in profile
+            # 1. Check UserProfile Role
             user_role = None
             if hasattr(request.user, 'profile') and request.user.profile.role:
-                user_role = request.user.profile.role.name
+                user_role = request.user.profile.role.name.strip()
                 
             if user_role in allowed_roles:
+                return view_func(request, *args, **kwargs)
+
+            # 2. Check Django Groups (as per accounts/models.py intent)
+            if request.user.groups.filter(name__in=allowed_roles).exists():
                 return view_func(request, *args, **kwargs)
                 
             raise PermissionDenied("You do not have the required role to access this page.")
