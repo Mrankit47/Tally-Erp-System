@@ -23,6 +23,13 @@ class VoucherType(models.TextChoices):
     PURCHASE = 'PURCHASE', 'Purchase'
 
 
+class VoucherStatus(models.TextChoices):
+    """Workflow states for a voucher."""
+    DRAFT = 'DRAFT', 'Draft'
+    PENDING = 'PENDING', 'Pending'
+    APPROVED = 'APPROVED', 'Approved'
+
+
 class EntryType(models.TextChoices):
     """Debit or Credit indicator."""
     DEBIT = 'DR', 'Debit'
@@ -114,6 +121,13 @@ class Voucher(TenantModel):
         default=False,
         db_index=True,
         help_text='Once posted, the voucher and its entries become read-only.'
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=VoucherStatus.choices,
+        default=VoucherStatus.APPROVED,
+        db_index=True,
+        help_text='Workflow status (Draft, Pending, Approved)'
     )
 
     class Meta:
@@ -236,6 +250,26 @@ class VoucherEntry(TenantModel):
         null=True,
         blank=True,
         help_text='Rate per unit.'
+    )
+    
+    # GST Extension (Optional)
+    gst_applicable = models.BooleanField(
+        default=False,
+        help_text="Enable GST calculation for this entry"
+    )
+    hsn_code = models.ForeignKey(
+        'taxation.HSNCode',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='voucher_entries'
+    )
+    tax_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="GST percentage applied to this entry"
     )
 
     class Meta:

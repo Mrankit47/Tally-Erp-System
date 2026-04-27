@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -180,3 +180,53 @@ def voucher_create_view(request, voucher_type):
         return render(request, 'receipt_voucher_form.html', context)
 
     return render(request, 'voucher_form.html', context)
+from .services.approval_service import approve_voucher
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from accounts.decorators import role_required
+
+@login_required
+@role_required(['Admin', 'Manager'])
+@require_POST
+def approve_voucher_view(request, voucher_id):
+    """
+    AJAX endpoint to approve a voucher from the dashboard.
+    Restricted to Admins and Managers.
+    """
+    active_company = getattr(request, 'active_company', None)
+    voucher = get_object_or_404(Voucher, pk=voucher_id, company=active_company)
+    
+    try:
+        approve_voucher(voucher, request.user)
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Voucher {voucher.number} approved successfully.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+@login_required
+@role_required(['Admin', 'Accountant', 'Manager'])
+def voucher_detail_view(request, voucher_id):
+    """
+    Read-only detailed view of a specific voucher.
+    """
+    active_company = getattr(request, 'active_company', None)
+    voucher = get_object_or_404(Voucher, pk=voucher_id, company=active_company)
+    
+    entries = voucher.entries.all().select_related('ledger', 'stock_item')
+    
+    # Calculate totals
+    total_debit = entries.filter(entry_type=EntryType.DEBIT).aggregate(total=Sum('amount'))['total'] or 0
+    total_credit = entries.filter(entry_type=EntryType.CREDIT).aggregate(total=Sum('amount'))['total'] or 0
+
+    context = {
+        'voucher': voucher,
+        'entries': entries,
+        'total_debit': total_debit,
+        'total_credit': total_credit,
+        'company': active_company,
+    }
+    return render(request, 'voucher_detail.html', context)

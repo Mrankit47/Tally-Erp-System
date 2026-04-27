@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+{% block page_title %}User & Access Management{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6 animate-fade-in">
+    
+    <!-- ═══════════ ACTION HEADER ═══════════ -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Team Members</h2>
+            <p class="text-sm text-gray-500">Manage user roles and system access levels.</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="toggleUserModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-semibold hover:bg-brand-700 transition-all shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Add New User
+            </button>
+            <a href="{% url 'role_management' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                Manage Roles
+            </a>
+        </div>
+    </div>
+
+    <!-- ═══════════ ADD USER MODAL ═══════════ -->
+    <div id="add-user-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-900">Register New Team Member</h3>
+                <button onclick="toggleUserModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form action="{% url 'create_user_dashboard' %}" method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Username</label>
+                    <input type="text" name="username" required class="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email Address</label>
+                    <input type="email" name="email" required class="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Initial Password</label>
+                    <input type="password" name="password" required class="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Assigned Role</label>
+                    <select name="role_id" required class="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all text-sm">
+                        {% for r in roles %}
+                        <option value="{{ r.id }}">{{ r.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="pt-4">
+                    <button type="submit" class="w-full py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-all shadow-md">
+                        Create User Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════ USER LIST ═══════════ -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50/80 text-left">
+                    <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">User</th>
+                    <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Current Role</th>
+                    <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-4 font-semibold text-gray-500 text-xs uppercase tracking-wider text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for u in users %}
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs">
+                                {{ u.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <div class="font-bold text-gray-900">{{ u.username }}</div>
+                                <div class="text-xs text-gray-400">{{ u.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold {% if u.profile.role.name == 'Admin' %}bg-purple-50 text-purple-700{% elif u.profile.role.name == 'Manager' %}bg-blue-50 text-blue-700{% else %}bg-gray-50 text-gray-700{% endif %}">
+                            {{ u.profile.role.name|default:"No Role" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if u.is_active %}
+                        <span class="inline-flex items-center gap-1 text-emerald-600 text-[10px] font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                        </span>
+                        {% else %}
+                        <span class="text-gray-400 text-[10px]">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <form action="{% url 'update_user_role' %}" method="POST" class="inline-flex items-center gap-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <select name="role_id" class="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 outline-none transition-all">
+                                <option value="" disabled selected>Change Role...</option>
+                                {% for r in roles %}
+                                <option value="{{ r.id }}" {% if u.profile.role.id == r.id %}selected{% endif %}>{{ r.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-[10px] font-bold hover:bg-brand-700 transition-all">
+                                Save
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleUserModal() {
+        const modal = document.getElementById('add-user-modal');
+        modal.classList.toggle('hidden');
+    }
+</script>
+{% endblock %}

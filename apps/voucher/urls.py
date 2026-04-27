@@ -13,4 +13,10 @@ urlpatterns = [
     
     path('purchases/', views.voucher_list_view, {'voucher_type': 'purchases'}, name='purchases_list'),
     path('purchases/new/', views.voucher_create_view, {'voucher_type': 'purchases'}, name='purchases_create'),
+    
+    # Approval Workflow
+    path('approve-voucher/<uuid:voucher_id>/', views.approve_voucher_view, name='approve_voucher'),
+    
+    # Detail View
+    path('view/<uuid:voucher_id>/', views.voucher_detail_view, name='voucher_detail'),
 ]

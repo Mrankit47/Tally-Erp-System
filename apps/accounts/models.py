@@ -63,3 +63,23 @@ class User(AbstractUser):
     def is_accountant_role(self):
         """Check if user is in the Accountant group."""
         return self.groups.filter(name='Accountant').exists()
+
+
+class Role(models.Model):
+    """System roles for access control."""
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class UserProfile(models.Model):
+    """Extension of the User model to store role and other profile info."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Profile ({self.role})"

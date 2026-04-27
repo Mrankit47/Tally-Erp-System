@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}{{ voucher.get_voucher_type_display }} - {{ voucher.number }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 py-10 print:p-0 print:bg-white">
+    <!-- Main Invoice Container -->
+    <div class="mx-auto bg-white border-[1px] border-black text-black font-sans shadow-xl print:shadow-none" 
+         style="width: 210mm; min-height: 297mm; margin: 0 auto; font-size: 11px; line-height: 1.2; display: flex; flex-direction: column; font-family: 'Arial', 'Helvetica', sans-serif;">
+
+        {% if voucher.voucher_type == 'SALES' or voucher.voucher_type == 'PURCHASE' %}
+            <!-- ════════════════════════════════════════════════
+                 INVOICE LAYOUT (SALES & PURCHASE)
+            ════════════════════════════════════════════════ -->
+            <div class="text-center font-bold border-b-[1px] border-black py-1 uppercase text-sm tracking-widest">
+                {% if voucher.voucher_type == 'SALES' %}Tax Invoice{% else %}Purchase Bill{% endif %}
+            </div>
+
+            <div class="flex border-b-[1px] border-black">
+                <div class="w-1/2 p-2 border-r-[1px] border-black min-h-[120px]">
+                    {% if voucher.voucher_type == 'PURCHASE' %}
+                        <span class="block text-[9px] uppercase font-bold text-gray-500 mb-1">Supplier (Seller)</span>
+                        <h1 class="font-bold text-base mb-1">{{ voucher.party_name }}</h1>
+                        <p class="whitespace-pre-line text-[10px] leading-tight">{{ voucher.party_address|default:"—" }}</p>
+                    {% else %}
+                        <h1 class="font-bold text-base mb-1">{{ company.name }}</h1>
+                        <p class="whitespace-pre-line leading-tight text-[10px]">{{ company.address|default:"—" }}</p>
+                        <p class="mt-2 font-bold uppercase text-[9px]">PAN: {{ company.pan_no|default:"—" }}</p>
+                    {% endif %}
+                </div>
+                <div class="w-1/2 flex flex-col">
+                    <div class="flex border-b-[1px] border-black h-1/2">
+                        <div class="w-1/2 p-2 border-r-[1px] border-black">
+                            <span class="block text-[9px] uppercase">Voucher No.</span>
+                            <span class="font-bold">{{ voucher.number }}</span>
+                        </div>
+                        <div class="w-1/2 p-2">
+                            <span class="block text-[9px] uppercase">Dated</span>
+                            <span class="font-bold">{{ voucher.date|date:"d-M-Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="p-2 text-[9px] h-1/2">
+                        <span class="block uppercase">Mode of Payment</span>
+                        <span class="font-bold">Immediate</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex border-b-[1px] border-black">
+                <div class="w-1/2 p-2 border-r-[1px] border-black min-h-[100px]">
+                    <span class="block text-[9px] uppercase mb-1 font-bold text-gray-500">Buyer (Bill to)</span>
+                    <h2 class="font-bold mb-1">{% if voucher.voucher_type == 'PURCHASE' %}{{ company.name }}{% else %}{{ voucher.party_name }}{% endif %}</h2>
+                    <p class="text-[10px] leading-tight whitespace-pre-line">{% if voucher.voucher_type == 'PURCHASE' %}{{ company.address }}{% else %}{{ voucher.party_address|default:"—" }}{% endif %}</p>
+                </div>
+                <div class="w-1/2 p-2 flex flex-col justify-center">
+                    <span class="block text-[9px] uppercase italic text-gray-400 text-center">Order & Dispatch details are handled in Tally Prime</span>
+                </div>
+            </div>
+
+            <div class="flex-grow flex flex-col">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="border-b-[1px] border-black bg-gray-50 text-[9px] font-bold uppercase">
+                            <th class="border-r-[1px] border-black p-1 w-10">Sl No.</th>
+                            <th class="border-r-[1px] border-black p-1 text-left">Description of Goods</th>
+                            <th class="border-r-[1px] border-black p-1 w-20 text-center">Qty</th>
+                            <th class="border-r-[1px] border-black p-1 w-24 text-right">Rate</th>
+                            <th class="p-1 w-32 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-[10px]">
+                        {% for entry in entries %}
+                        <tr class="min-h-[20px]">
+                            <td class="border-r-[1px] border-black px-1 py-1 text-center align-top">{{ forloop.counter }}</td>
+                            <td class="border-r-[1px] border-black px-2 py-1 align-top">
+                                <div class="font-bold uppercase">{{ entry.ledger.name }}</div>
+                                {% if entry.stock_item %}<div class="ml-4 font-normal italic text-[9px]">{{ entry.stock_item.name }}</div>{% endif %}
+                            </td>
+                            <td class="border-r-[1px] border-black px-1 py-1 text-center align-top font-bold">{{ entry.quantity|default:"" }}</td>
+                            <td class="border-r-[1px] border-black px-1 py-1 text-right align-top font-bold">{% if entry.rate %}{{ entry.rate|floatformat:2 }}{% endif %}</td>
+                            <td class="px-1 py-1 text-right align-top font-bold">{{ entry.amount|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr style="height: 400px;">
+                            <td class="border-r-[1px] border-black"></td>
+                            <td class="border-r-[1px] border-black"></td>
+                            <td class="border-r-[1px] border-black"></td>
+                            <td class="border-r-[1px] border-black"></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="border-t-[1px] border-black font-bold bg-gray-50">
+                        <tr>
+                            <td colspan="2" class="px-2 py-1 text-right uppercase text-[9px]">Total</td>
+                            <td class="border-r-[1px] border-black"></td>
+                            <td class="border-r-[1px] border-black"></td>
+                            <td class="px-1 py-1 text-right">{{ total_credit|indian_currency }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+        {% else %}
+            <!-- ════════════════════════════════════════════════
+                 VOUCHER LAYOUT (PAYMENT & RECEIPT)
+            ════════════════════════════════════════════════ -->
+            <div class="p-8 text-center">
+                <h1 class="text-xl font-bold">{{ company.name|upper }}</h1>
+                <p class="text-[10px]">{{ company.address|default:"—" }}</p>
+                <div class="mt-4 font-bold border-y-[1px] border-black py-2 uppercase tracking-[0.2em] text-sm">
+                    {{ voucher.get_voucher_type_display }} Voucher
+                </div>
+            </div>
+
+            <div class="px-12 flex justify-between font-bold mb-4 text-xs">
+                <span>No. : {{ voucher.number }}</span>
+                <span>Dated : {{ voucher.date|date:"d-M-Y" }}</span>
+            </div>
+
+            <div class="mx-12 border-[1px] border-black flex-grow flex flex-col">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="border-b-[1px] border-black text-[10px] font-bold bg-gray-50 uppercase">
+                            <th class="p-3 text-left border-r-[1px] border-black">Particulars</th>
+                            <th class="p-3 text-right w-40">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="flex-grow">
+                        <tr>
+                            <td class="p-6 border-r-[1px] border-black align-top min-h-[400px]">
+                                <div class="mb-8">
+                                    <span class="font-bold text-[10px] uppercase block mb-3 text-gray-500">Account :</span>
+                                    {% for entry in entries %}
+                                        {% if voucher.voucher_type == 'PAYMENT' and entry.entry_type == 'DR' or voucher.voucher_type == 'RECEIPT' and entry.entry_type == 'CR' %}
+                                            <div class="ml-6 flex justify-between items-center mb-2">
+                                                <span class="font-bold text-lg uppercase">{{ entry.ledger.name }}</span>
+                                                <span class="font-bold text-lg">{{ entry.amount|floatformat:2 }}</span>
+                                            </div>
+                                            {% if voucher.narration %}
+                                                <div class="ml-10 text-[9px] text-gray-400 italic mb-4">"{{ voucher.narration }}"</div>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+
+                                <div class="mt-20">
+                                    <span class="font-bold text-[10px] uppercase block mb-2 text-gray-500">Through :</span>
+                                    {% for entry in entries %}
+                                        {% if voucher.voucher_type == 'PAYMENT' and entry.entry_type == 'CR' or voucher.voucher_type == 'RECEIPT' and entry.entry_type == 'DR' %}
+                                            <div class="ml-6 font-bold text-base uppercase text-indigo-700 tracking-wide">{{ entry.ledger.name }}</div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="align-bottom p-4 border-t-[1px] border-black font-bold text-right bg-gray-50 text-xl border-l-[1px]">
+                                <span class="text-xs mr-1">₹</span>{{ total_credit|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <!-- COMMON FOOTER SECTION -->
+        <div class="p-8 px-12 mt-auto border-t-[1px] border-black bg-white">
+            <div class="mb-10">
+                <span class="block text-[9px] uppercase font-bold text-gray-400 mb-2">Amount (in words) :</span>
+                <p class="font-bold text-sm italic tracking-wide">INR {{ total_credit|indian_currency }} Only</p>
+            </div>
+            
+            <div class="flex justify-between items-end mt-16 pb-4">
+                {% if voucher.voucher_type == 'PAYMENT' %}
+                <div>
+                    <div class="w-48 border-t-[1px] border-black text-center pt-2 font-bold uppercase text-[9px] tracking-widest">
+                        Receiver's Signature
+                    </div>
+                </div>
+                {% endif %}
+                <div class="ml-auto">
+                    <div class="w-48 border-t-[1px] border-black text-center pt-2 font-bold uppercase text-[9px] tracking-widest">
+                        Authorised Signatory
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-6 text-[8px] italic text-gray-400 font-bold uppercase tracking-widest">
+                This is a Computer Generated Document
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions (Non-printing) -->
+    <div class="max-w-screen-md mx-auto mt-6 flex justify-center gap-4 print:hidden">
+        <a href="javascript:history.back()" class="px-10 py-3 bg-slate-800 text-white font-bold rounded-xl shadow-xl hover:bg-slate-700 transition-all">Back to List</a>
+        <button onclick="window.print()" class="px-10 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition-all">Print Voucher</button>
+    </div>
+</div>
+
+<style>
+    @page { size: A4; margin: 0; }
+    @media print {
+        body { background: white !important; font-family: Arial, Helvetica, sans-serif !important; }
+        .bg-gray-100 { padding: 0 !important; background: transparent !important; }
+        .shadow-xl { box-shadow: none !important; }
+        .print\:hidden { display: none !important; }
+        .mx-auto { 
+            margin: 0 !important; 
+            border: 1px solid black !important; 
+            width: 100% !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}
