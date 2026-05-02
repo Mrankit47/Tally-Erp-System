@@ -238,7 +238,7 @@ CORS_ALLOW_CREDENTIALS = True
 # TALLY INTEGRATION
 # =============================================================================
 
-TALLY_URL = os.getenv('TALLY_URL', 'http://localhost:9000')
+TALLY_URL = os.getenv('TALLY_URL', 'https://cut-footprint-chowder.ngrok-free.dev')
 TALLY_TIMEOUT = int(os.getenv('TALLY_TIMEOUT', '15'))
 TALLY_RETRY_COUNT = int(os.getenv('TALLY_RETRY_COUNT', '3'))
 
