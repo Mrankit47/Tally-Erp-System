@@ -17,7 +17,7 @@ import dj_database_url
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.onrender.com').split(',')
+ALLOWED_HOSTS = ["*"]
 
 # =============================================================================
 # DATABASE — PostgreSQL via DATABASE_URL (Render-managed)
