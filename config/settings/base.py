@@ -42,7 +42,7 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = https://tally-erp-system.onrender.com
 
 # Custom user model — MUST be set before first migration
 AUTH_USER_MODEL = 'accounts.User'
