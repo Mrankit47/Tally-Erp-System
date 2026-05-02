@@ -22,4 +22,9 @@ python manage.py migrate --no-input
 echo ">>> Creating default superuser..."
 python manage.py createadmin
 
+# ==============================================================================
+# Run CreateAdmin on Deploy
+# ==============================================================================
+python manage.py createadmin || echo "✓ Superuser creation skipped or already exists"
+
 echo ">>> Build complete ✓"
