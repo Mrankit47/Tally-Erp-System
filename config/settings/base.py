@@ -76,6 +76,7 @@ LOCAL_APPS = [
     'tally_integration',
     'taxation',
     'invoicing',
+    'ai',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -289,6 +290,13 @@ LOGGING = {
             'formatter': 'verbose',
             'level': 'ERROR',
         },
+        'ai_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'ai.log'),
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
     },
     'root': {
         'handlers': ['console', 'file'],
@@ -312,6 +320,11 @@ LOGGING = {
         },
         'apps': {
             'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'apps.ai': {
+            'handlers': ['console', 'ai_file'],
             'level': 'DEBUG',
             'propagate': False,
         },

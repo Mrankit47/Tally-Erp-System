@@ -97,6 +97,7 @@ urlpatterns = [
 
     # ─── API ───
     path('api/v1/', include((api_v1_patterns, 'api-v1'))),
+    path('api/chat/', include('apps.ai.urls')),
 
     # DRF browsable API auth (login/logout links)
     path('api-auth/', include('rest_framework.urls')),
