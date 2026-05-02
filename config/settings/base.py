@@ -42,7 +42,7 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ["*"]
 
 # Custom user model — MUST be set before first migration
 AUTH_USER_MODEL = 'accounts.User'
