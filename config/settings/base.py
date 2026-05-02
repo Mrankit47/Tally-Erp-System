@@ -25,7 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # ENVIRONMENT LOADING
 # =============================================================================
 
-# Removed dotenv dependency for production
+# Optionally load .env file for local development if available
+try:
+    from dotenv import load_dotenv
+    if (BASE_DIR / '.env').exists():
+        load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
 
 # Add apps/ directory to Python path so apps can be imported directly
 # e.g., 'accounts' instead of 'apps.accounts'
@@ -37,7 +43,7 @@ sys.path.insert(0, str(BASE_DIR / 'apps'))
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
-    raise ImproperlyConfigured("SECRET_KEY must be set in your .env file for security.")
+    raise ImproperlyConfigured("SECRET_KEY environment variable is missing. Please set it in your environment or .env file.")
 
 DEBUG = os.getenv("DEBUG") == "True"
 
