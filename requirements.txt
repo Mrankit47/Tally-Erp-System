@@ -1,0 +1,45 @@
+# ==============================================================================
+# Django ERP — Production Dependencies
+# ==============================================================================
+
+# Core Framework
+Django==5.2.13
+djangorestframework==3.17.1
+django-cors-headers==4.9.0
+
+# WSGI Server (Production)
+gunicorn==25.3.0
+
+# Database
+psycopg2-binary==2.9.11
+dj-database-url==3.1.2
+
+# Static Files
+whitenoise==6.12.0
+
+# Environment
+python-dotenv==1.2.2
+
+# PDF & Reporting
+weasyprint==68.1
+xhtml2pdf==0.2.17
+reportlab==4.4.10
+
+# Tally / XML Parsing
+lxml==6.1.0
+requests==2.33.1
+
+# Image Processing
+pillow==12.2.0
+
+# PDF Signing
+pyHanko==0.34.1
+pyhanko-certvalidator==0.30.2
+pypdf==6.10.2
+
+# AI Integration
+# (groq SDK — add version here when needed)
+
+# Other Utilities
+python-dateutil==2.9.0.post0
+PyYAML==6.0.3

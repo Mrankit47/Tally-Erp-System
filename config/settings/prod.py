@@ -9,6 +9,7 @@ This file should be activated by setting:
 from .base import *  # noqa: F401, F403
 
 import os
+import dj_database_url
 
 # =============================================================================
 # DEBUG — MUST be False in production
@@ -16,7 +17,24 @@ import os
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.onrender.com').split(',')
+
+# =============================================================================
+# DATABASE — PostgreSQL via DATABASE_URL (Render-managed)
+# =============================================================================
+# On Render, set the DATABASE_URL env var to your managed PostgreSQL's
+# Internal Database URL (starts with postgresql://).
+# Falls back to the individual DB_* vars from base.py if DATABASE_URL is absent.
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,           # Keep connections open for 10 min
+            conn_health_checks=True,    # Verify connections before use
+        )
+    }
 
 # =============================================================================
 # SECURITY SETTINGS
@@ -45,6 +63,16 @@ SECURE_BROWSER_XSS_FILTER = True
 
 # Clickjacking protection
 X_FRAME_OPTIONS = 'DENY'
+
+# CSRF — trust Render's *.onrender.com domain
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+]
+
+# Extend with any extra origins from env (comma-separated)
+extra_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if extra_csrf:
+    CSRF_TRUSTED_ORIGINS += [o.strip() for o in extra_csrf.split(',') if o.strip()]
 
 # =============================================================================
 # STATIC FILES — WhiteNoise (compressed + cached)
