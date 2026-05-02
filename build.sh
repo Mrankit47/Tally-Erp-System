@@ -28,3 +28,4 @@ python manage.py createadmin
 python manage.py createadmin || echo "✓ Superuser creation skipped or already exists"
 
 echo ">>> Build complete ✓"
+python manage.py collectstatic --noinput 
