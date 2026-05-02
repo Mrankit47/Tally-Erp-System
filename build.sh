@@ -3,7 +3,8 @@
 # Render Build Script — Django ERP
 # ==============================================================================
 # This script is executed by Render during every deploy.
-# It installs dependencies, collects static files, and runs migrations.
+# It installs dependencies, collects static files, runs migrations,
+# and creates the default superuser.
 # ==============================================================================
 
 set -o errexit  # Exit on any error
@@ -17,5 +18,8 @@ python manage.py collectstatic --no-input
 
 echo ">>> Running database migrations..."
 python manage.py migrate --no-input
+
+echo ">>> Creating default superuser..."
+python manage.py createadmin
 
 echo ">>> Build complete ✓"
