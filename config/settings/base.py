@@ -9,8 +9,8 @@ import os
 import sys
 import logging
 from pathlib import Path
-from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
+import dj_database_url
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # ENVIRONMENT LOADING
 # =============================================================================
 
-# Load environment variables from .env file
-load_dotenv(BASE_DIR / '.env')
+# Removed dotenv dependency for production
 
 # Add apps/ directory to Python path so apps can be imported directly
 # e.g., 'accounts' instead of 'apps.accounts'
@@ -48,7 +47,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://tally-erp-system.onrender.com"
 ]
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 # Custom user model — MUST be set before first migration
 AUTH_USER_MODEL = 'accounts.User'
@@ -143,28 +143,10 @@ ASGI_APPLICATION = 'config.asgi.application'
 # DATABASE — PostgreSQL (Supabase compatible)
 # =============================================================================
 
-# Validate DB credentials
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT", "5432")
-
-if not all([DB_NAME, DB_USER, DB_HOST]):
-    logger.warning("Database configuration environment variables are missing. Check your .env file.")
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': DB_NAME,
-        'USER': DB_USER,
-        'PASSWORD': DB_PASSWORD,
-        'HOST': DB_HOST,
-        'PORT': DB_PORT,
-        'OPTIONS': {
-            'connect_timeout': 10,
-        },
-    }
+    "default": dj_database_url.config(
+        default=os.environ.get("DATABASE_URL")
+    )
 }
 
 # =============================================================================
@@ -192,7 +174,7 @@ USE_TZ = True
 # =============================================================================
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # =============================================================================
