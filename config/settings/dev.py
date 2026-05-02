@@ -21,7 +21,7 @@ ALLOWED_HOSTS = ['*']
 
 import os
 
-if not os.getenv('DB_NAME'):
+if not os.getenv('DATABASE_URL'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -41,6 +41,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000"
+]
 # =============================================================================
 # LOGGING — More verbose in development
 # =============================================================================
