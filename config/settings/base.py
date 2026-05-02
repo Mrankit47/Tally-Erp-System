@@ -343,5 +343,5 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 import dj_database_url
 
 DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get("postgresql://postgres.crqgefrgifvvwoprephx:[YOUR-PASSWORD]@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"))
+    'default': dj_database_url.config(default=os.environ.get("DATABASE_URL"))
 }
