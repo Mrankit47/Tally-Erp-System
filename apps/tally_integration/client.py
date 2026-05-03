@@ -27,7 +27,11 @@ class TallyClient:
         self.url = url or settings.TALLY_URL
         self.timeout = timeout or settings.TALLY_TIMEOUT
         self.session = requests.Session()
-        self.headers = {'Content-Type': 'application/xml'}
+        self.session.headers.update({
+            'Content-Type': 'application/xml',
+            'ngrok-skip-browser-warning': 'true',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        })
 
     def post_with_retry(self, xml_payload):
         """
@@ -51,7 +55,6 @@ class TallyClient:
                 response = self.session.post(
                     self.url,
                     data=xml_payload,
-                    headers=self.headers,
                     timeout=self.timeout
                 )
                 
