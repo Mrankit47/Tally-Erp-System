@@ -100,3 +100,9 @@ LOGGING['loggers']['apps']['level'] = 'WARNING'
 REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
     'rest_framework.renderers.JSONRenderer',
 ]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.ngrok-free.app",
+]
+ALLOWED_HOSTS = ["*"]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
