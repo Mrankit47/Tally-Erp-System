@@ -548,16 +548,21 @@ class TallyXMLParser:
                     if alloc_list is not None:
                         ledger_name = alloc_list.findtext('LEDGERNAME')
                         
+                    qty = TallyXMLParser._extract_quantity(inv_entry.findtext('BILLEDQTY', '0'))
+                    amt_str = inv_entry.findtext('AMOUNT', '0')
+                    amt = Decimal(amt_str) if amt_str else Decimal('0')
+                    
                     v_data['entries'].append({
                         'stock_item': stock_item,
                         'ledger': ledger_name,
-                        'quantity': Decimal(inv_entry.findtext('BILLEDQTY', '0').split(' ')[0] or '0'),
-                        'amount': abs(Decimal(inv_entry.findtext('AMOUNT', '0'))),
-                        'is_debit': Decimal(inv_entry.findtext('AMOUNT', '0')) < 0
+                        'quantity': qty,
+                        'amount': abs(amt),
+                        'is_debit': amt < 0
                     })
                 vouchers.append(v_data)
             return vouchers
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to parse vouchers XML: {str(e)}")
             return []
 
     @staticmethod

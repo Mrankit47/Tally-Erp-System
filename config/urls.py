@@ -12,7 +12,7 @@ from django.conf.urls.static import static
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from apps.core.views import (
+from core.views import (
     landing_view,
     dashboard_view, 
     sync_logs_view, 
@@ -22,7 +22,7 @@ from apps.core.views import (
     masters_hub_view,
     generic_master_view
 )
-
+from company.views import company_view
 
 # =============================================================================
 # API Root View — lists all available endpoint groups
@@ -96,8 +96,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # ─── API ───
+    path('api/company/', company_view, name='company_api'),  # Direct Tally endpoint
     path('api/v1/', include((api_v1_patterns, 'api-v1'))),
-    path('api/chat/', include('apps.ai.urls')),
+    path('api/chat/', include('ai.urls')),
 
     # DRF browsable API auth (login/logout links)
     path('api-auth/', include('rest_framework.urls')),

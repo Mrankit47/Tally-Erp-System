@@ -665,20 +665,23 @@ class TallySyncService:
             success_count = 0
             synced_record_ids = []
 
+            # ─── Cache for performance ───
+            ledger_cache = {}
+            stock_cache = {}
+
             for v_data in tally_vouchers:
                 # 1. Parse Date
                 v_date_str = v_data.get('date', '')
+                v_date = timezone.now().date()
                 if v_date_str and len(v_date_str) == 8:
                     try:
                         v_date = datetime.datetime.strptime(v_date_str, '%Y%m%d').date()
                     except ValueError:
-                        v_date = timezone.now().date()
-                else:
-                    v_date = timezone.now().date()
+                        pass
 
                 vid = v_data.get('number')
                 if not vid:
-                    continue  # Skip if no voucher number
+                    continue
 
                 # 2. Create or Update Voucher
                 voucher, created = Voucher.objects.update_or_create(
@@ -697,58 +700,57 @@ class TallySyncService:
                     }
                 )
                 
-                # If creating, set created_by
                 if created:
                     voucher.created_by = self.user
                     voucher.save(update_fields=['created_by'])
 
                 synced_record_ids.append(str(voucher.id))
+                voucher.entries.all().delete()
 
-                # Clear old entries and stock transactions if updating
-                if not created:
-                    voucher.entries.all().delete()
-
-                # 3. Create Entries
+                # 3. Create Entries (Batch processing could be better, but we need IDs for StockTransactions)
                 for e_data in v_data.get('entries', []):
-                    # Resolve Ledger
+                    # Resolve Ledger with Cache
                     ledger_name = e_data.get('ledger') or 'Suspense A/C'
-                    ledger, _ = Ledger.objects.get_or_create(
-                        company=self.company,
-                        name=ledger_name,
-                        defaults={
-                            'group': primary_group,
-                            'sync_status': ModelSyncStatus.PENDING,
-                            'created_by': self.user,
-                        }
-                    )
+                    if ledger_name not in ledger_cache:
+                        ledger, _ = Ledger.objects.get_or_create(
+                            company=self.company,
+                            name=ledger_name,
+                            defaults={'group': primary_group, 'sync_status': ModelSyncStatus.PENDING, 'created_by': self.user}
+                        )
+                        ledger_cache[ledger_name] = ledger
+                    ledger = ledger_cache[ledger_name]
 
-                    # Resolve Stock Item
+                    # Resolve Stock Item with Cache
                     stock_item_name = e_data.get('stock_item')
                     stock_item = None
                     if stock_item_name:
-                        stock_item, _ = StockItem.objects.get_or_create(
-                            company=self.company,
-                            name=stock_item_name,
-                            defaults={
-                                'sync_status': ModelSyncStatus.PENDING,
-                                'created_by': self.user,
-                            }
-                        )
+                        if stock_item_name not in stock_cache:
+                            si, _ = StockItem.objects.get_or_create(
+                                company=self.company,
+                                name=stock_item_name,
+                                defaults={'sync_status': ModelSyncStatus.PENDING, 'created_by': self.user}
+                            )
+                            stock_cache[stock_item_name] = si
+                        stock_item = stock_cache[stock_item_name]
 
                     entry_type = EntryType.DEBIT if e_data.get('is_debit') else EntryType.CREDIT
+                    qty = e_data.get('quantity')
+                    amt = e_data.get('amount') or Decimal('0.00')
+                    
+                    rate = None
+                    if qty and qty > 0:
+                        rate = amt / qty
 
                     # Create VoucherEntry
                     entry = VoucherEntry.objects.create(
                         company=self.company,
                         voucher=voucher,
                         ledger=ledger,
-                        amount=e_data.get('amount') or Decimal('0.00'),
+                        amount=amt,
                         entry_type=entry_type,
                         stock_item=stock_item,
-                        quantity=e_data.get('quantity'),
-                        # Note: Rate could be calculated if amount / quantity is available,
-                        # but Tally fetch might not provide it reliably in this list
-                        rate=Decimal(e_data.get('amount')) / Decimal(e_data.get('quantity')) if e_data.get('quantity') and Decimal(e_data.get('quantity')) > 0 else None,
+                        quantity=qty,
+                        rate=rate,
                         created_by=self.user,
                         updated_by=self.user
                     )
@@ -760,14 +762,14 @@ class TallySyncService:
                             company=self.company,
                             stock_item=stock_item,
                             voucher_entry=entry,
-                            quantity=entry.quantity or Decimal('0.00'),
-                            rate=entry.rate or Decimal('0.00'),
+                            quantity=qty or Decimal('0.00'),
+                            rate=rate or Decimal('0.00'),
                             transaction_type=tx_type,
                             created_by=self.user,
                             updated_by=self.user
                         )
 
-                # Compute party_name if missing from PARTYLEDGERNAME (common in Tally for general vouchers)
+                # Compute party_name if missing
                 if not voucher.party_name:
                     party_entry = None
                     if target_type == VoucherType.SALES:
@@ -793,4 +795,5 @@ class TallySyncService:
         except Exception as e:
             log.message = f"Voucher Fetch Error: {str(e)}"
             log.save()
+            logger.exception("Voucher sync failed")
             raise

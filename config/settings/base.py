@@ -50,11 +50,16 @@ DEBUG = os.getenv("DEBUG") == "True"
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://tally-erp-system.onrender.com"
+    "https://tally-erp-system.onrender.com",
+    "https://*.ngrok-free.dev",
+    "https://*.ngrok-free.app",
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 
 # Custom user model — MUST be set before first migration
 AUTH_USER_MODEL = 'accounts.User'
