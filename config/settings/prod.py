@@ -15,7 +15,7 @@ import dj_database_url
 # DEBUG — MUST be False in production
 # =============================================================================
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
@@ -45,10 +45,10 @@ SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Cookie security
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_HTTPONLY = False
-CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
 
 # HSTS — tell browsers to only use HTTPS for 1 year
 SECURE_HSTS_SECONDS = 31536000  # 1 year
@@ -67,9 +67,12 @@ X_FRAME_OPTIONS = 'DENY'
 # CSRF — trust Render's *.onrender.com domain
 CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com',
-    'https://*.ngrok-free.dev',
-    'https://*.ngrok-free.app',
 ]
+
+# Extend with any extra origins from env (comma-separated)
+extra_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if extra_csrf:
+    CSRF_TRUSTED_ORIGINS += [o.strip() for o in extra_csrf.split(',') if o.strip()]
 
 # =============================================================================
 # STATIC FILES — WhiteNoise (compressed + cached)
@@ -96,4 +99,10 @@ LOGGING['loggers']['apps']['level'] = 'WARNING'
 
 REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
     'rest_framework.renderers.JSONRenderer',
-]
+]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.ngrok-free.app",
+]
+ALLOWED_HOSTS = ["*"]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
