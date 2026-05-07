@@ -11,3 +11,4 @@ groq==1.2.0
 python-dotenv==1.2.2
 requests==2.33.1
 python-dateutil==2.9.0
+pytesseract==0.3.13

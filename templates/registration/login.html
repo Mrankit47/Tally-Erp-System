@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — NextGen ERP</title>
+    <title>Login — TallyERP Nexus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
@@ -32,10 +33,10 @@
         <!-- Logo -->
         <div class="text-center space-y-4">
             <a href="/" class="inline-flex items-center gap-2">
-                <div class="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center shadow-xl shadow-brand-500/20">
-                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                <div class="w-12 h-12 rounded-2xl overflow-hidden shadow-xl border border-brand-100/50 flex items-center justify-center bg-white p-1">
+                    <img src="{% static 'nexus_logo.png' %}" alt="TallyERP Nexus Logo" class="w-full h-full object-contain">
                 </div>
-                <span class="text-2xl font-extrabold tracking-tight text-slate-900">NextGen <span class="text-brand-600">ERP</span></span>
+                <span class="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">TallyERP <span class="text-brand-600 font-semibold bg-sky-50 px-2 py-0.5 rounded-lg text-xs border border-sky-100">Nexus</span></span>
             </a>
             <h2 class="text-3xl font-extrabold text-slate-900">Welcome Back</h2>
             <p class="text-slate-500 font-medium italic">Secure access to your financial dashboard</p>

@@ -14,6 +14,15 @@ urlpatterns = [
     path('purchases/', views.voucher_list_view, {'voucher_type': 'purchases'}, name='purchases_list'),
     path('purchases/new/', views.voucher_create_view, {'voucher_type': 'purchases'}, name='purchases_create'),
     
+    # AI Invoice Scanner
+    path('scan/', views.voucher_scan_view, name='voucher_scan'),
+    path('scan/api/', views.voucher_scan_api, name='voucher_scan_api'),
+    path('scan/save/', views.voucher_scan_save_api, name='voucher_scan_save_api'),
+    
+    # AI Financial Analytics & Insights Dashboard
+    path('analytics/', views.voucher_analytics_view, name='voucher_analytics'),
+    path('analytics/api/', views.voucher_analytics_api, name='voucher_analytics_api'),
+    
     # Approval Workflow
     path('approve-voucher/<uuid:voucher_id>/', views.approve_voucher_view, name='approve_voucher'),
     
