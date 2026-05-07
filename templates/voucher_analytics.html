@@ -1,242 +1,375 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Financial Intelligence - TallyERP Nexus{% endblock %}
+{% block title %}Financial Intelligence — TallyERP Nexus{% endblock %}
 
 {% block content %}
-<div class="space-y-8 animate-fade-in pb-16">
-    <!-- Header Area -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+<div class="space-y-8 animate-fade-in pb-16 bg-slate-50">
+    
+    <!-- ═════════════════════════════════════════════════════════════
+         HEADER AREA
+         ═════════════════════════════════════════════════════════════ -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+        <div class="absolute inset-y-0 right-0 w-64 bg-gradient-to-l from-blue-50/20 to-transparent pointer-events-none"></div>
         <div>
-            <div class="flex items-center gap-2.5">
-                <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
-                    <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <div class="flex items-center gap-3">
+                <span class="p-2.5 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
                 </span>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Financial Intelligence Dashboard</h1>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">AI Financial Intelligence</h1>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Tally Sync Active
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5">Real-time analytical ratios, ledger anomaly audits, and automated executive AI commentary.</p>
+                </div>
             </div>
-            <p class="text-sm text-slate-500 mt-1">Real-time analytical metrics, risk modeling, and executive AI insights powered by Groq.</p>
         </div>
-        <div class="flex items-center gap-3">
-            <button id="refreshBtn" onclick="fetchAnalyticsData(true)" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold text-slate-700 shadow-sm transition-all active:scale-[0.98]">
-                <svg id="refreshIcon" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/></svg>
-                <span>Refresh Insights</span>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+            <button id="refreshBtn" onclick="fetchAnalyticsData(true)" class="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-sm transition-all active:scale-[0.98]">
+                <svg id="refreshIcon" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/>
+                </svg>
+                <span>Re-Run AI Audit</span>
             </button>
         </div>
     </div>
 
-    <!-- Main Grid: Health HUD and AI Summary -->
+    <!-- ═════════════════════════════════════════════════════════════
+         SECTION 1: FINANCIAL HEALTH & AI SUMMARY HUD
+         ═════════════════════════════════════════════════════════════ -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- Left: Circular Health Meter -->
-        <div class="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group">
-            <div class="absolute inset-0 bg-gradient-to-b from-indigo-50/10 to-transparent pointer-events-none"></div>
+        <!-- Circular Health score HUD -->
+        <div class="lg:col-span-4 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-b from-slate-50/40 to-transparent pointer-events-none"></div>
             
-            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6">Financial Health Score</h3>
+            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-6">Corporate Integrity Score</h3>
             
-            <div class="relative w-48 h-48 flex items-center justify-center">
-                <!-- SVG Gauge -->
+            <div class="relative w-44 h-44 flex items-center justify-center">
                 <svg class="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" stroke-width="8"></circle>
                     <circle id="healthCircle" cx="50" cy="50" r="40" fill="transparent" stroke="url(#healthGrad)" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
                     <defs>
                         <linearGradient id="healthGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#6366f1"></stop>
-                            <stop offset="100%" stop-color="#14b8a6"></stop>
+                            <stop offset="0%" stop-color="#2563eb"></stop>
+                            <stop offset="100%" stop-color="#10b981"></stop>
                         </linearGradient>
                     </defs>
                 </svg>
                 
-                <div class="flex flex-col items-center justify-center">
-                    <span id="healthScoreText" class="text-4xl font-extrabold text-slate-900 tracking-tight">0</span>
-                    <span id="healthStatusBadge" class="text-xs font-bold uppercase px-2.5 py-1 rounded-full border mt-2">Loading...</span>
+                <div class="flex flex-col items-center justify-center z-10">
+                    <span id="healthScoreText" class="text-5xl font-black text-slate-900 tracking-tight">0</span>
+                    <span id="healthStatusBadge" class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border mt-2">Loading...</span>
                 </div>
             </div>
 
-            <!-- Health Deductions list -->
+            <!-- Health Factors List -->
             <div class="w-full mt-6 border-t border-slate-100 pt-5 text-left">
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Key Score Factors</h4>
-                <div id="deductionsList" class="space-y-2 text-xs text-slate-600">
-                    <div class="flex gap-2 items-start">
-                        <span class="text-emerald-500 font-bold">✓</span>
-                        <span>Auditing system indicators report healthy parameters.</span>
+                <h4 class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3">Key Audit Scoring Factors</h4>
+                <div id="deductionsList" class="space-y-2 text-xs text-slate-600 max-h-36 overflow-y-auto">
+                    <div class="flex gap-2 items-start animate-pulse">
+                        <div class="w-4 h-4 bg-slate-100 rounded-full"></div>
+                        <div class="h-3 bg-slate-100 rounded w-5/6 mt-0.5"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right: Groq AI Commentary -->
-        <div class="lg:col-span-8 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+        <!-- Groq AI Commentary Block -->
+        <div class="lg:col-span-8 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
             <div>
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                     <div class="flex items-center gap-2">
-                        <span class="flex h-2.5 w-2.5 relative">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
                         </span>
-                        <h3 class="text-base font-bold text-slate-900">Executive AI insights Report</h3>
+                        <h3 class="text-sm font-bold text-slate-900 tracking-tight">Executive Intelligence Commentary</h3>
                     </div>
-                    <span class="text-xs text-slate-400 font-medium">As of: <span id="insightsTimestamp">-</span></span>
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Calculated: <span id="insightsTimestamp">-</span></span>
                 </div>
                 
-                <!-- Markdown content rendering block -->
-                <div id="insightsContainer" class="prose prose-sm max-w-none text-slate-600 leading-relaxed space-y-4">
+                <!-- AI Markdown container -->
+                <div id="insightsContainer" class="prose prose-sm max-w-none text-slate-600 leading-relaxed text-xs space-y-3 max-h-[17.5rem] overflow-y-auto pr-2">
                     <div class="animate-pulse space-y-3">
-                        <div class="h-4 bg-slate-100 rounded w-1/3"></div>
-                        <div class="h-4 bg-slate-100 rounded w-full"></div>
-                        <div class="h-4 bg-slate-100 rounded w-5/6"></div>
-                        <div class="h-4 bg-slate-100 rounded w-2/3"></div>
+                        <div class="h-3 bg-slate-100 rounded w-1/4"></div>
+                        <div class="h-3 bg-slate-100 rounded w-full"></div>
+                        <div class="h-3 bg-slate-100 rounded w-5/6"></div>
+                        <div class="h-3 bg-slate-100 rounded w-2/3"></div>
                     </div>
                 </div>
             </div>
             
-            <div class="border-t border-slate-100 pt-4 mt-6 flex justify-between items-center text-xs text-slate-400">
-                <span>Model: <b>Groq Llama-3.1-8B-Instant</b></span>
-                <span>Analyst Mode: <b>Corporate ERP Auditor</b></span>
+            <div class="border-t border-slate-100 pt-4 mt-4 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                <span>Model: <b class="text-slate-600">Groq Llama-3.1-8B-Instant</b></span>
+                <span>Analyst Mode: <b class="text-slate-600">Senior Financial Auditor</b></span>
             </div>
         </div>
     </div>
 
-    <!-- Analytical KPIs Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        <!-- Card 1: Revenue -->
-        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+    <!-- ═════════════════════════════════════════════════════════════
+         SECTION 2: PREMIUM KPI SUMMARY CARDS (6 CARDS GRID)
+         ═════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        
+        <!-- Gross Revenue -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all relative overflow-hidden group">
+            <div class="absolute inset-x-0 bottom-0 h-1 bg-blue-600/10"></div>
             <div class="flex justify-between items-start">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Revenue (Monthly)</span>
-                <span id="revenueTrend" class="text-xs font-bold flex items-center gap-1">--</span>
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Gross Revenue</span>
+                <span id="revenueTrend" class="text-[10px] font-bold px-1.5 py-0.5 rounded">--</span>
             </div>
             <div class="mt-4">
-                <h3 id="revenueValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
-                <p id="prevRevenueText" class="text-xs text-slate-400 mt-1">Prev: --</p>
+                <h3 id="revenueValue" class="text-xl font-black text-slate-900 tracking-tight">₹0.00</h3>
+                <p id="prevRevenueText" class="text-[10px] text-slate-400 mt-1 font-medium">Prev: ₹0.00</p>
             </div>
         </div>
 
-        <!-- Card 2: Expenses -->
-        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+        <!-- Operating Expenses -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all relative overflow-hidden group">
+            <div class="absolute inset-x-0 bottom-0 h-1 bg-amber-500/10"></div>
             <div class="flex justify-between items-start">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses (Monthly)</span>
-                <span id="expenseRatio" class="text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-100">Ratio: --%</span>
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Expenses</span>
+                <span id="expenseRatio" class="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-100">Ratio: --%</span>
             </div>
             <div class="mt-4">
-                <h3 id="expenseValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
-                <p id="prevExpenseText" class="text-xs text-slate-400 mt-1">Top Category: --</p>
+                <h3 id="expenseValue" class="text-xl font-black text-slate-900 tracking-tight">₹0.00</h3>
+                <p id="prevExpenseText" class="text-[10px] text-slate-400 mt-1 font-medium">Top Category: --</p>
             </div>
         </div>
 
-        <!-- Card 3: Cashflow -->
-        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+        <!-- Net Profit -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all relative overflow-hidden group">
+            <div class="absolute inset-x-0 bottom-0 h-1 bg-emerald-500/10"></div>
             <div class="flex justify-between items-start">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Cashflow</span>
-                <span id="cashflowStatus" class="w-2.5 h-2.5 rounded-full"></span>
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Net Profit</span>
+                <span id="profitMargin" class="text-[10px] font-bold px-1.5 py-0.5 rounded text-emerald-600 bg-emerald-50 border border-emerald-100">--%</span>
             </div>
             <div class="mt-4">
-                <h3 id="cashflowValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
-                <div class="flex justify-between text-[10px] text-slate-400 mt-1.5 border-t border-slate-50 pt-1.5">
-                    <span>In: <b id="inflowText" class="text-emerald-600">₹0</b></span>
-                    <span>Out: <b id="outflowText" class="text-rose-600">₹0</b></span>
-                </div>
+                <h3 id="profitValue" class="text-xl font-black text-slate-900 tracking-tight">₹0.00</h3>
+                <p id="profitText" class="text-[10px] text-slate-400 mt-1 font-medium">Gross operating surplus</p>
             </div>
         </div>
 
-        <!-- Card 4: GST Obligations -->
-        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+        <!-- GST Obligations -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all relative overflow-hidden group">
+            <div class="absolute inset-x-0 bottom-0 h-1 bg-indigo-500/10"></div>
             <div class="flex justify-between items-start">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Duties & Taxes</span>
-                <span class="text-[10px] font-bold text-indigo-600 px-1.5 py-0.5 rounded-md bg-indigo-50">GST</span>
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">GST Obligations</span>
+                <span class="text-[10px] font-bold text-indigo-600 px-1.5 py-0.5 rounded bg-indigo-50">Duties</span>
             </div>
             <div class="mt-4">
-                <h3 id="gstValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
-                <p class="text-xs text-slate-400 mt-1">Estimated dynamic tax due</p>
+                <h3 id="gstValue" class="text-xl font-black text-slate-900 tracking-tight">₹0.00</h3>
+                <p class="text-[10px] text-slate-400 mt-1 font-medium">Estimated tax liability</p>
             </div>
         </div>
 
-        <!-- Card 5: Pending Approvals -->
-        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+        <!-- Compliance Risks -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all relative overflow-hidden group">
+            <div class="absolute inset-x-0 bottom-0 h-1 bg-rose-500/10"></div>
             <div class="flex justify-between items-start">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Approvals</span>
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Audit Risks</span>
+                <span id="riskCountBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded text-rose-600 bg-rose-50 border border-rose-100">0 Flags</span>
+            </div>
+            <div class="mt-4">
+                <h3 id="riskValue" class="text-xl font-black text-slate-900 tracking-tight">0</h3>
+                <p class="text-[10px] text-slate-400 mt-1 font-medium">Active compliance anomalies</p>
+            </div>
+        </div>
+
+        <!-- Pending Approvals -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all relative overflow-hidden group">
+            <div class="absolute inset-x-0 bottom-0 h-1 bg-amber-500/10"></div>
+            <div class="flex justify-between items-start">
+                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Approvals Queue</span>
                 <span class="p-1 rounded bg-amber-50 text-amber-500">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                 </span>
             </div>
             <div class="mt-4">
-                <h3 id="approvalCount" class="text-2xl font-extrabold text-slate-900 tracking-tight">0</h3>
-                <p id="totalVouchersText" class="text-xs text-slate-400 mt-1">Vouchers total: --</p>
+                <h3 id="approvalCount" class="text-xl font-black text-slate-900 tracking-tight">0</h3>
+                <p id="totalVouchersText" class="text-[10px] text-slate-400 mt-1 font-medium">Total: --</p>
             </div>
         </div>
     </div>
 
-    <!-- Charts Visualization Section -->
+    <!-- ═════════════════════════════════════════════════════════════
+         SECTION 3: VISUAL INTELLIGENCE GRID ROW 1
+         ═════════════════════════════════════════════════════════════ -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Sales & Expenses Line Graph -->
-        <div class="lg:col-span-8 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-            <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
-                <span class="w-1.5 h-3.5 bg-indigo-500 rounded-full"></span>
-                Month-over-Month Revenue & Expenses Comparison
-            </h3>
+        <div class="lg:col-span-8 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-1.5 h-3.5 bg-blue-600 rounded-full"></span>
+                    Month-over-Month Revenue & Expenses Trend
+                </h3>
+            </div>
             <div class="relative h-80">
                 <canvas id="salesExpensesChart"></canvas>
             </div>
         </div>
 
-        <!-- Expense Share Doughnut and Forecast -->
-        <div class="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+        <!-- Expense Share Doughnut -->
+        <div class="lg:col-span-4 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
             <div>
-                <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <span class="w-1.5 h-3.5 bg-teal-500 rounded-full"></span>
-                    Expense Distribution (By Category)
+                <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <span class="w-1.5 h-3.5 bg-emerald-500 rounded-full"></span>
+                    Expense Allocation Share
                 </h3>
                 <div class="relative h-56 flex items-center justify-center">
                     <canvas id="expensePieChart"></canvas>
-                    <div id="noExpenseText" class="absolute hidden text-xs text-slate-400">No expense records found.</div>
+                    <div id="noExpenseText" class="absolute hidden text-xs text-slate-400 font-medium">No expense records found.</div>
                 </div>
             </div>
             
-            <!-- Moving Average Projections -->
+            <!-- SMA Trend Forecast -->
             <div class="border-t border-slate-100 pt-5 mt-4">
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">AI Trend Forecast (SMA Projections)</h4>
+                <h4 class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3">AI Simple Moving Average Forecast</h4>
                 <div class="grid grid-cols-2 gap-4 text-xs">
-                    <div class="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
-                        <span class="text-slate-400">Expected Sales</span>
-                        <div id="forecastSales" class="font-bold text-slate-800 text-sm mt-0.5">₹0.00</div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Expected Sales</span>
+                        <div id="forecastSales" class="font-black text-slate-800 text-sm mt-0.5">₹0.00</div>
                     </div>
-                    <div class="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
-                        <span class="text-slate-400">Expected Expense</span>
-                        <div id="forecastExpense" class="font-bold text-slate-800 text-sm mt-0.5">₹0.00</div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Expected Expense</span>
+                        <div id="forecastExpense" class="font-black text-slate-800 text-sm mt-0.5">₹0.00</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Auditing Alerts & Financial Risks HUD -->
-    <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <span class="w-1.5 h-3.5 bg-rose-500 rounded-full"></span>
-                Automated ERP Audit & Ledger Anomaly Alerts
+    <!-- ═════════════════════════════════════════════════════════════
+         SECTION 4: VISUAL INTELLIGENCE GRID ROW 2 (NEW CHARTS!)
+         ═════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Cashflow Inflow/Outflow Combo Chart -->
+        <div class="lg:col-span-6 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <span class="w-1.5 h-3.5 bg-blue-600 rounded-full"></span>
+                Cashflow Profile & Liquidity Spread
             </h3>
-            <span id="totalRisksBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100">0 Alerts</span>
+            <div class="relative h-72">
+                <canvas id="cashflowComboChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Voucher Status Stacked Chart -->
+        <div class="lg:col-span-6 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span class="w-1.5 h-3.5 bg-indigo-500 rounded-full"></span>
+                    Voucher Approval & Workflow Backlog
+                </h3>
+                <div class="relative h-44 flex items-center justify-center mt-2">
+                    <canvas id="approvalsStackedChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Workflow delay KPIs -->
+            <div class="border-t border-slate-100 pt-4 mt-4 grid grid-cols-3 gap-4 text-center">
+                <div class="p-2.5 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                    <p class="text-[9px] font-extrabold text-emerald-600 uppercase tracking-widest">Approved</p>
+                    <p id="approvedCountText" class="text-base font-black text-emerald-700 mt-0.5">0</p>
+                </div>
+                <div class="p-2.5 bg-amber-50/50 rounded-2xl border border-amber-100">
+                    <p class="text-[9px] font-extrabold text-amber-600 uppercase tracking-widest">Pending Queue</p>
+                    <p id="pendingCountText" class="text-base font-black text-amber-700 mt-0.5">0</p>
+                </div>
+                <div class="p-2.5 bg-rose-50/50 rounded-2xl border border-rose-100">
+                    <p class="text-[9px] font-extrabold text-rose-600 uppercase tracking-widest">Rejected</p>
+                    <p id="rejectedCountText" class="text-base font-black text-rose-700 mt-0.5">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         SECTION 5: VISUAL INTELLIGENCE GRID ROW 3
+         ═════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- GST Donut Split -->
+        <div class="lg:col-span-4 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <span class="w-1.5 h-3.5 bg-indigo-500 rounded-full"></span>
+                GST Taxes Liability Split
+            </h3>
+            <div class="relative h-60 flex items-center justify-center">
+                <canvas id="gstDonutChart"></canvas>
+                <div id="noGstText" class="absolute hidden text-xs text-slate-400 font-medium">No GST liabilities logged.</div>
+            </div>
+        </div>
+
+        <!-- Inventory insights / Stock trends -->
+        <div class="lg:col-span-8 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <span class="w-1.5 h-3.5 bg-teal-500 rounded-full"></span>
+                    Inventory Analytics & Fast Moving Stock Volume
+                </h3>
+                <div id="inventoryContainer" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Low Stock card -->
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <span class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Critical Stock Level Alerts</span>
+                            <div id="lowStockList" class="space-y-2 mt-3 text-xs">
+                                <span class="text-slate-400 font-medium italic block">No critical stock levels found.</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Fast moving card -->
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <span class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Product Velocity Indicators</span>
+                            <div id="fastMovingList" class="space-y-2 mt-3 text-xs">
+                                <span class="text-slate-400 font-medium italic block">No high velocity products calculated.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-100 pt-4 mt-4 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <span>Data Scope: <b class="text-slate-500">Live inventory warehouse</b></span>
+                <span>Optimized indicators: <b class="text-slate-500">Auto-Refreshed</b></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         SECTION 6: AUTOMATED ERP AUDIT & RISK ALERT CARD LAYOUT
+         ═════════════════════════════════════════════════════════════ -->
+    <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-5 mb-5">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                    <span class="w-1.5 h-3.5 bg-rose-500 rounded-full"></span>
+                    Automated ERP Audit & Ledger Anomaly Alerts
+                </h3>
+                <p class="text-[11px] text-slate-400 mt-1">Maker-checker validations, duplicate booking detection, and corporate auditing compliance rules.</p>
+            </div>
+            <span id="totalRisksBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100">0 Alerts</span>
         </div>
         
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-100">
-                <thead>
-                    <tr class="text-xs text-slate-400 uppercase tracking-wider text-left">
-                        <th class="py-3 px-4 font-semibold">Severity</th>
-                        <th class="py-3 px-4 font-semibold">Voucher Ref</th>
-                        <th class="py-3 px-4 font-semibold">Audit Flag Title</th>
-                        <th class="py-3 px-4 font-semibold">Description</th>
-                    </tr>
-                </thead>
-                <tbody id="risksTableBody" class="divide-y divide-slate-100 text-sm text-slate-600">
-                    <tr>
-                        <td colspan="4" class="py-8 text-center text-slate-400 text-xs">
-                            Checking ledger transactions for audit compliance...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Risk Cards Container -->
+        <div id="riskCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="col-span-2 text-center py-10 text-slate-400 text-xs font-semibold animate-pulse">
+                Auditing database records for compliance indicators...
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Floating Chat widget helper integration -->
+{% include 'chat_widget.html' %}
 
 <!-- Chart JS Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -246,6 +379,9 @@
     // Global chart instances
     let salesExpensesChart = null;
     let expensePieChart = null;
+    let cashflowComboChart = null;
+    let approvalsStackedChart = null;
+    let gstDonutChart = null;
 
     document.addEventListener("DOMContentLoaded", function() {
         fetchAnalyticsData(false);
@@ -281,9 +417,49 @@
             });
     }
 
+    // Markdown Parser Helper Function
+    function parseMarkdownToHtml(markdown) {
+        if (!markdown) return "";
+        let lines = markdown.split("\n");
+        let html = "";
+        let insideList = false;
+
+        lines.forEach(line => {
+            line = line.trim();
+            if (!line) return;
+
+            // Header level 3
+            if (line.startsWith("###")) {
+                if (insideList) { html += "</ul>"; insideList = false; }
+                let text = line.replace(/^###\s*/, "");
+                html += `<h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider block mt-4 border-l-2 border-blue-500 pl-2 mb-2">${text}</h4>`;
+            }
+            // List Items
+            else if (line.startsWith("-") || line.startsWith("*")) {
+                if (!insideList) { html += '<ul class="space-y-1.5 mt-2">'; insideList = true; }
+                let text = line.replace(/^[-*]\s*/, "");
+                
+                // Bold formatting inside lists
+                text = text.replace(/\*\*(.*?)\*\*/g, '<b class="font-bold text-slate-800">$1</b>');
+                html += `<li class="flex items-start gap-1.5 text-xs text-slate-600"><span class="text-blue-500 font-bold">•</span><span>${text}</span></li>`;
+            }
+            // Paragraph / standard lines
+            else {
+                if (insideList) { html += "</ul>"; insideList = false; }
+                
+                // Bold formatting
+                line = line.replace(/\*\*(.*?)\*\*/g, '<b class="font-bold text-slate-800">$1</b>');
+                html += `<p class="text-xs text-slate-500 leading-relaxed mt-1.5">${line}</p>`;
+            }
+        });
+
+        if (insideList) html += "</ul>";
+        return html;
+    }
+
     function populateDashboard(payload) {
         if (!payload || !payload.metrics) {
-            console.warn("Payload metrics are empty. Showing default clean states.");
+            console.warn("Payload metrics are empty. Showing default states.");
             return;
         }
         const m = payload.metrics;
@@ -306,11 +482,11 @@
             const status = healthObj.status || "EXCELLENT";
             badge.innerText = status;
             if (status === "EXCELLENT") {
-                badge.className = "text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border-emerald-200 mt-2";
+                badge.className = "text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 mt-2";
             } else if (status === "STABLE") {
-                badge.className = "text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 mt-2";
+                badge.className = "text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100 mt-2";
             } else {
-                badge.className = "text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border-rose-200 mt-2";
+                badge.className = "text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100 mt-2";
             }
         }
 
@@ -321,17 +497,17 @@
             if (healthObj.deductions && healthObj.deductions.length > 0) {
                 healthObj.deductions.forEach(d => {
                     listContainer.innerHTML += `
-                        <div class="flex gap-2 items-start">
-                            <span class="text-rose-500 font-bold">!</span>
-                            <span class="text-slate-500">${d}</span>
+                        <div class="flex gap-2 items-start bg-slate-50 p-2 rounded-xl border border-slate-100">
+                            <span class="text-rose-500 font-bold leading-none text-sm">!</span>
+                            <span class="text-[11px] text-slate-500 font-medium">${d}</span>
                         </div>
                     `;
                 });
             } else {
                 listContainer.innerHTML = `
-                    <div class="flex gap-2 items-start">
-                        <span class="text-emerald-500 font-bold">✓</span>
-                        <span class="text-slate-500">Perfect financial score. No negative anomalies flagged.</span>
+                    <div class="flex gap-2 items-start bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span class="text-emerald-500 font-bold leading-none">✓</span>
+                        <span class="text-[11px] text-slate-500 font-medium">Perfect financial compliance. No audit scoring penalties flagged.</span>
                     </div>
                 `;
             }
@@ -346,22 +522,22 @@
         const insightsContainer = document.getElementById("insightsContainer");
         if (insightsContainer) {
             let aiMarkdown = payload.ai_insights || "";
-            let formattedCommentary = aiMarkdown
-                .replace(/\*\*\*(.*?)\*\*\*/g, '<b><i>$1</i></b>')
-                .replace(/\*\*(.*?)\*\*/g, '<b class="text-slate-900 font-bold block mt-3">$1</b>')
-                .replace(/- (.*?)\n/g, '<li class="list-disc ml-5 text-slate-600">$1</li>')
-                .replace(/\n\n/g, '<p class="mt-2"></p>');
-                
-            insightsContainer.innerHTML = formattedCommentary || "<p class='text-slate-400 text-xs'>No AI commentary generated yet.</p>";
+            insightsContainer.innerHTML = parseMarkdownToHtml(aiMarkdown) || "<p class='text-slate-400 text-xs'>No AI insights generated yet.</p>";
         }
 
         // 3. Populate metrics grid
         const rev = m.revenue || { current_month_sales: 0, prev_month_sales: 0, growth_percentage: 0, monthly_trends: [] };
         const exp = m.expenses || { current_month_expenses: 0, expense_ratio: 0, top_categories: [], monthly_expense_trends: [] };
         const cash = m.cashflow || { net_cashflow: 0, inflow: 0, outflow: 0, receivables: 0, payables: 0 };
-        const gst = m.gst || { net_gst_liability: 0 };
-        const appr = m.approvals || { pending_approvals: 0, total_vouchers: 0 };
+        const gst = m.gst || { net_gst_liability: 0, cgst_liability: 0, sgst_liability: 0, igst_liability: 0 };
+        const appr = m.approvals || { pending_approvals: 0, approved_vouchers: 0, rejected_vouchers: 0, total_vouchers: 0 };
         const forecast = m.forecast || { projected_sales: 0, projected_expenses: 0 };
+        const risks = m.risks || [];
+
+        // Dynamic Calculations
+        const netProfitValue = rev.current_month_sales - exp.current_month_expenses;
+        const profitMarginValue = rev.current_month_sales > 0 ? ((netProfitValue / rev.current_month_sales) * 100).toFixed(1) : "0.0";
+        const highRisksCount = risks.filter(r => r.severity === 'HIGH').length;
 
         // Sales
         const revValElem = document.getElementById("revenueValue");
@@ -376,10 +552,10 @@
         if (revTrend) {
             const growth = rev.growth_percentage || 0;
             if (growth >= 0) {
-                revTrend.className = "text-xs font-bold flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded";
+                revTrend.className = "text-[10px] font-bold flex items-center gap-1 text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded";
                 revTrend.innerHTML = `↑ ${growth}%`;
             } else {
-                revTrend.className = "text-xs font-bold flex items-center gap-1 text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded";
+                revTrend.className = "text-[10px] font-bold flex items-center gap-1 text-rose-600 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded";
                 revTrend.innerHTML = `↓ ${Math.abs(growth)}%`;
             }
         }
@@ -396,29 +572,26 @@
         const prevExpElem = document.getElementById("prevExpenseText");
         if (prevExpElem) {
             const topCat = (exp.top_categories && exp.top_categories.length > 0) ? exp.top_categories[0].category : "None";
-            prevExpElem.innerText = `Top Expense: ${topCat}`;
+            prevExpElem.innerText = `Top: ${topCat}`;
         }
 
-        // Cashflow
-        const cashValElem = document.getElementById("cashflowValue");
-        if (cashValElem) {
-            cashValElem.innerText = `₹${(cash.net_cashflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-        }
-        const inflowElem = document.getElementById("inflowText");
-        if (inflowElem) {
-            inflowElem.innerText = `₹${Math.round(cash.inflow || 0).toLocaleString('en-IN')}`;
-        }
-        const outflowElem = document.getElementById("outflowText");
-        if (outflowElem) {
-            outflowElem.innerText = `₹${Math.round(cash.outflow || 0).toLocaleString('en-IN')}`;
-        }
-        
-        const cashStatus = document.getElementById("cashflowStatus");
-        if (cashStatus) {
-            if ((cash.net_cashflow || 0) >= 0) {
-                cashStatus.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+        // Net Profit Margin
+        const profitValElem = document.getElementById("profitValue");
+        if (profitValElem) {
+            profitValElem.innerText = `₹${netProfitValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+            if (netProfitValue >= 0) {
+                profitValElem.className = "text-xl font-black text-slate-900 tracking-tight";
             } else {
-                cashStatus.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse";
+                profitValElem.className = "text-xl font-black text-rose-600 tracking-tight";
+            }
+        }
+        const profitMarginElem = document.getElementById("profitMargin");
+        if (profitMarginElem) {
+            profitMarginElem.innerText = `${profitMarginValue}% Margin`;
+            if (netProfitValue >= 0) {
+                profitMarginElem.className = "text-[10px] font-bold px-1.5 py-0.5 rounded text-emerald-600 bg-emerald-50 border border-emerald-100";
+            } else {
+                profitMarginElem.className = "text-[10px] font-bold px-1.5 py-0.5 rounded text-rose-600 bg-rose-50 border border-rose-100";
             }
         }
 
@@ -428,6 +601,21 @@
             gstElem.innerText = `₹${(gst.net_gst_liability || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
         }
 
+        // Risks anomalies
+        const riskValElem = document.getElementById("riskValue");
+        if (riskValElem) {
+            riskValElem.innerText = risks.length;
+        }
+        const riskCountBadge = document.getElementById("riskCountBadge");
+        if (riskCountBadge) {
+            riskCountBadge.innerText = `${highRisksCount} High Severity`;
+            if (highRisksCount > 0) {
+                riskCountBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded text-rose-600 bg-rose-50 border border-rose-100 animate-pulse";
+            } else {
+                riskCountBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded text-slate-600 bg-slate-50 border border-slate-100";
+            }
+        }
+
         // Approvals
         const apprElem = document.getElementById("approvalCount");
         if (apprElem) {
@@ -435,8 +623,13 @@
         }
         const totVouchElem = document.getElementById("totalVouchersText");
         if (totVouchElem) {
-            totVouchElem.innerText = `Vouchers total: ${appr.total_vouchers || 0}`;
+            totVouchElem.innerText = `Total scope: ${appr.total_vouchers || 0}`;
         }
+
+        // Text KPI counts inside stack card
+        document.getElementById("approvedCountText").innerText = appr.approved_vouchers || 0;
+        document.getElementById("pendingCountText").innerText = appr.pending_approvals || 0;
+        document.getElementById("rejectedCountText").innerText = appr.rejected_vouchers || 0;
 
         // SMA Forecasts
         const fSalesElem = document.getElementById("forecastSales");
@@ -448,14 +641,56 @@
             fExpElem.innerText = `₹${(forecast.projected_expenses || 0).toLocaleString('en-IN')}`;
         }
 
+        // Populate Low stock levels
+        const lowStockList = document.getElementById("lowStockList");
+        if (lowStockList && m.inventory) {
+            lowStockList.innerHTML = "";
+            const lowItems = m.inventory.low_stock || [];
+            if (lowItems.length > 0) {
+                lowItems.forEach(item => {
+                    lowStockList.innerHTML += `
+                        <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100">
+                            <span class="font-bold text-slate-700">${item.item_name}</span>
+                            <span class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 font-extrabold border border-rose-100">${item.stock} Units</span>
+                        </div>
+                    `;
+                });
+            } else {
+                lowStockList.innerHTML = `<span class="text-slate-400 font-medium italic block text-center py-2">All stock items are within healthy parameters.</span>`;
+            }
+        }
+
+        // Populate Fast moving stock items
+        const fastMovingList = document.getElementById("fastMovingList");
+        if (fastMovingList && m.inventory) {
+            fastMovingList.innerHTML = "";
+            const fastItems = m.inventory.fast_moving || [];
+            if (fastItems.length > 0) {
+                fastItems.forEach(item => {
+                    fastMovingList.innerHTML += `
+                        <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100">
+                            <span class="font-bold text-slate-700">${item.item_name}</span>
+                            <span class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-extrabold border border-emerald-100">Vol: ${item.volume}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                fastMovingList.innerHTML = `<span class="text-slate-400 font-medium italic block text-center py-2">No product velocity indicators logged yet.</span>`;
+            }
+        }
+
         // 4. Render charts
         renderSalesExpensesGraph(rev.monthly_trends || [], exp.monthly_expense_trends || []);
         renderExpensePie(exp.top_categories || []);
+        renderCashflowCombo(cash);
+        renderApprovalsWorkflowChart(appr);
+        renderGstDonutChart(gst);
 
         // 5. Populate Risks/Anomalies HUD table
-        populateRisksTable(m.risks || []);
+        populateRisksHUD(risks);
     }
 
+    // Line Chart: Revenue MoM
     function renderSalesExpensesGraph(revTrends, expTrends) {
         if (salesExpensesChart) {
             salesExpensesChart.destroy();
@@ -475,21 +710,23 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Total Sales (Revenue)',
+                        label: 'Gross Sales Revenue',
                         data: revData,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.05)',
-                        borderWidth: 2.5,
-                        tension: 0.3,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.02)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563eb',
+                        tension: 0.35,
                         fill: true
                     },
                     {
-                        label: 'Total Expenses',
+                        label: 'Operating Expenses',
                         data: expData,
-                        borderColor: '#14b8a6',
-                        backgroundColor: 'rgba(20, 184, 166, 0.05)',
-                        borderWidth: 2.5,
-                        tension: 0.3,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.02)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#f59e0b',
+                        tension: 0.35,
                         fill: true
                     }
                 ]
@@ -501,7 +738,7 @@
                     legend: {
                         position: 'top',
                         labels: {
-                            font: { size: 11, weight: '500' },
+                            font: { size: 10, weight: '700' },
                             usePointStyle: true,
                             boxWidth: 6
                         }
@@ -514,7 +751,8 @@
                         ticks: {
                             callback: function(val) {
                                 return '₹' + val.toLocaleString('en-IN');
-                            }
+                            },
+                            font: { size: 9, weight: '500' }
                         }
                     }
                 }
@@ -522,6 +760,7 @@
         });
     }
 
+    // Doughnut Chart: Expenses Share
     function renderExpensePie(topCategories) {
         if (expensePieChart) {
             expensePieChart.destroy();
@@ -550,20 +789,20 @@
                 labels: labels,
                 datasets: [{
                     data: data,
-                    backgroundColor: ['#6366f1', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6'],
-                    borderWidth: 2,
+                    backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                    borderWidth: 3,
                     borderColor: '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '70%',
+                cutout: '72%',
                 plugins: {
                     legend: {
                         position: 'right',
                         labels: {
-                            font: { size: 10, weight: '500' },
+                            font: { size: 9, weight: '700' },
                             usePointStyle: true,
                             boxWidth: 5
                         }
@@ -573,60 +812,226 @@
         });
     }
 
-    function populateRisksTable(risks) {
-        const body = document.getElementById("risksTableBody");
+    // Combo Chart: Cashflow Profile
+    function renderCashflowCombo(cash) {
+        if (cashflowComboChart) {
+            cashflowComboChart.destroy();
+        }
+
+        const canvas = document.getElementById('cashflowComboChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        cashflowComboChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Cash Inflow', 'Cash Outflow', 'Net Cashflow'],
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: 'Cash Flow Velocity',
+                        data: [cash.inflow || 0, cash.outflow || 0, cash.net_cashflow || 0],
+                        backgroundColor: ['rgba(16, 185, 129, 0.85)', 'rgba(239, 68, 68, 0.85)', 'rgba(37, 99, 235, 0.85)'],
+                        borderRadius: 12,
+                        barThickness: 32,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                        ticks: {
+                            callback: function(val) { return '₹' + val.toLocaleString('en-IN'); },
+                            font: { size: 9, weight: '500' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Segmented horizontal approval stacked bar
+    function renderApprovalsWorkflowChart(appr) {
+        if (approvalsStackedChart) {
+            approvalsStackedChart.destroy();
+        }
+
+        const canvas = document.getElementById('approvalsStackedChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        approvalsStackedChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Voucher Workflow Pipeline'],
+                datasets: [
+                    {
+                        label: 'Approved',
+                        data: [appr.approved_vouchers || 0],
+                        backgroundColor: '#10b981',
+                        borderRadius: { topLeft: 10, bottomLeft: 10 },
+                    },
+                    {
+                        label: 'Pending',
+                        data: [appr.pending_approvals || 0],
+                        backgroundColor: '#f59e0b',
+                    },
+                    {
+                        label: 'Rejected',
+                        data: [appr.rejected_vouchers || 0],
+                        backgroundColor: '#ef4444',
+                        borderRadius: { topRight: 10, bottomRight: 10 },
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 9, weight: '600' }, usePointStyle: true, boxWidth: 6 }
+                    }
+                },
+                scales: {
+                    x: { stacked: true, grid: { display: false }, ticks: { display: false } },
+                    y: { stacked: true, grid: { display: false }, ticks: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Donut Chart: GST Divisions
+    function renderGstDonutChart(gst) {
+        if (gstDonutChart) {
+            gstDonutChart.destroy();
+        }
+
+        const canvas = document.getElementById('gstDonutChart');
+        const emptyText = document.getElementById('noGstText');
+        if (!canvas) return;
+
+        const cgst = gst.cgst_liability || 0;
+        const sgst = gst.sgst_liability || 0;
+        const igst = gst.igst_liability || 0;
+
+        if (cgst === 0 && sgst === 0 && igst === 0) {
+            canvas.style.display = "none";
+            if (emptyText) emptyText.style.display = "block";
+            return;
+        }
+
+        canvas.style.display = "block";
+        if (emptyText) emptyText.style.display = "none";
+
+        const ctx = canvas.getContext('2d');
+        gstDonutChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['CGST (Central)', 'SGST (State)', 'IGST (Inter-State)'],
+                datasets: [{
+                    data: [cgst, sgst, igst],
+                    backgroundColor: ['#2563eb', '#60a5fa', '#8b5cf6'],
+                    borderWidth: 3,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 9, weight: '700' }, usePointStyle: true, boxWidth: 6 }
+                    }
+                }
+            }
+        });
+    }
+
+    // Render interactive beautiful audit cards
+    function populateRisksHUD(risks) {
+        const container = document.getElementById("riskCardsContainer");
         const totalBadge = document.getElementById("totalRisksBadge");
-        if (!body) return;
-        
+        if (!container) return;
+
         if (totalBadge) {
             totalBadge.innerText = `${risks.length} Audit Warnings`;
         }
-        body.innerHTML = "";
+        container.innerHTML = "";
 
         if (!risks || risks.length === 0) {
-            body.innerHTML = `
-                <tr>
-                    <td colspan="4" class="py-8 text-center text-xs text-slate-400">
-                        <span class="inline-block p-2 rounded-full bg-emerald-50 text-emerald-500 mb-1">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </span>
-                        <div class="font-bold text-slate-700">Perfect Audit Status</div>
-                        No suspicious booking patterns, duplicate entries, or narration errors found.
-                    </td>
-                </tr>
+            container.innerHTML = `
+                <div class="col-span-2 text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center">
+                    <span class="inline-block p-3 rounded-full bg-emerald-50 text-emerald-500 mb-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </span>
+                    <h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-widest">Flawless Audit Compliance</h4>
+                    <p class="text-xs text-slate-500 max-w-sm mt-1">No anomalous transactions, duplicates, or missing narrations detected across your ledger entries.</p>
+                </div>
             `;
             if (totalBadge) {
-                totalBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100";
+                totalBadge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100";
             }
             return;
         }
 
-        // Sort HIGH first
-        const severityOrder = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
-        risks.sort((a, b) => severityOrder[b.severity] - severityOrder[a.severity]);
+        // Sort risks by severity (HIGH -> MEDIUM -> LOW)
+        const order = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+        risks.sort((a, b) => order[b.severity] - order[a.severity]);
 
         risks.forEach(r => {
-            let sevBadge = "";
+            let borderClass = "";
+            let pulseDot = "";
+            let actionText = "";
+
             if (r.severity === "HIGH") {
-                sevBadge = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>High</span>`;
+                borderClass = "border-l-4 border-l-rose-500 border-slate-100";
+                pulseDot = `<span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse block"></span>`;
+                actionText = `<b>Required action:</b> Confirm invoice accuracy with payee before processing payout queue.`;
             } else if (r.severity === "MEDIUM") {
-                sevBadge = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-100"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Medium</span>`;
+                borderClass = "border-l-4 border-l-amber-500 border-slate-100";
+                pulseDot = `<span class="w-2 h-2 rounded-full bg-amber-500 block"></span>`;
+                actionText = `<b>Required action:</b> Check logging timeline with recording accountant.`;
             } else {
-                sevBadge = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>Low</span>`;
+                borderClass = "border-l-4 border-l-blue-500 border-slate-100";
+                pulseDot = `<span class="w-2 h-2 rounded-full bg-blue-500 block"></span>`;
+                actionText = `<b>Required action:</b> Add detailed narration manually to satisfy statutory auditing.`;
             }
 
-            body.innerHTML += `
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="py-3 px-4 font-semibold">${sevBadge}</td>
-                    <td class="py-3 px-4 font-mono font-bold text-indigo-600 text-xs">${r.ref || 'N/A'}</td>
-                    <td class="py-3 px-4 font-bold text-slate-800">${r.title || "-"}</td>
-                    <td class="py-3 px-4 text-xs text-slate-500">${r.description || "-"}</td>
-                </tr>
+            container.innerHTML += `
+                <div class="bg-white p-5 rounded-2xl border ${borderClass} flex flex-col justify-between hover:shadow-md transition-all">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="inline-flex items-center gap-1.5 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200">
+                                ${pulseDot}
+                                Severity: ${r.severity}
+                            </span>
+                            <span class="text-xs font-bold text-blue-600 font-mono bg-blue-50/50 px-2 py-0.5 rounded-md border border-blue-100">${r.ref || 'N/A'}</span>
+                        </div>
+                        <h4 class="text-xs font-black text-slate-800 tracking-tight">${r.title || "-"}</h4>
+                        <p class="text-[11px] text-slate-500 mt-1.5 leading-relaxed font-medium">${r.description || "-"}</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-50 text-[10px] text-slate-400 font-medium">
+                        ${actionText}
+                    </div>
+                </div>
             `;
         });
-        
+
         if (totalBadge) {
-            totalBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100";
+            totalBadge.className = "text-xs font-bold px-3 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100";
         }
     }
 </script>
