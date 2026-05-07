@@ -14,17 +14,56 @@
                     fontFamily: { 'sans': ['Plus Jakarta Sans', 'sans-serif'] },
                     colors: {
                         navy: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            800: '#1e293b',
-                            900: '#0f172a',
-                            950: '#020617',
+                            50:  '#F8FAFC',
+                            100: '#E2E8F0',
+                            200: '#CBD5E1',
+                            300: '#94A3B8',
+                            400: '#60A5FA',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            800: '#1E3A8A',
+                            900: '#1E293B',
+                            950: '#0F172A',
                         },
                         accent: {
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
+                            50:  '#F8FAFC',
+                            100: '#E2E8F0',
+                            200: '#CBD5E1',
+                            300: '#94A3B8',
+                            400: '#60A5FA',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            800: '#1E3A8A',
+                            900: '#1E293B',
+                            950: '#0F172A',
+                        },
+                        indigo: {
+                            50:  '#F8FAFC',
+                            100: '#E2E8F0',
+                            200: '#CBD5E1',
+                            300: '#94A3B8',
+                            400: '#60A5FA',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            800: '#1E3A8A',
+                            900: '#1E293B',
+                            950: '#0F172A',
+                        },
+                        purple: {
+                            50:  '#F8FAFC',
+                            100: '#E2E8F0',
+                            200: '#CBD5E1',
+                            300: '#94A3B8',
+                            400: '#60A5FA',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            800: '#1E3A8A',
+                            900: '#1E293B',
+                            950: '#0F172A',
                         }
                     },
                     animation: {
@@ -52,7 +91,7 @@
         .float-1 { animation: float-y 8s ease-in-out infinite; }
         .float-2 { animation: float-y-reverse 9s ease-in-out infinite; }
         .glow-bg { animation: glow-pulse 10s ease-in-out infinite; }
-        .gradient-text { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-text { background: linear-gradient(135deg, #2563EB 0%, #0F172A 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
         
         /* Soft Scroll Reveal */
         .reveal-element { opacity: 0; transform: translateY(16px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -71,7 +110,7 @@
             height: 2px;
             bottom: -4px;
             left: 0;
-            background: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+            background: linear-gradient(90deg, #2563EB 0%, #60A5FA 100%);
             transform-origin: bottom right;
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -111,7 +150,7 @@
 
             <div class="flex items-center gap-4">
                 <a href="{% url 'login' %}" class="px-5 py-2.5 bg-navy-900 text-white rounded-xl text-sm font-bold hover:bg-navy-800 transition-all shadow-md shadow-navy-900/10">
-                    Launch Dashboard
+                    Log In
                 </a>
             </div>
         </div>
@@ -144,7 +183,7 @@
                 
                 <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
                     <a href="{% url 'login' %}" class="w-full sm:w-auto px-8 py-4 bg-accent-600 text-white rounded-2xl font-bold hover:bg-accent-700 transition-all shadow-lg shadow-accent-500/25 flex items-center justify-center gap-2 group">
-                        Launch ERP Dashboard
+                        Log In
                         <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                         </svg>
@@ -184,11 +223,12 @@
                             <span class="w-2 h-2 rounded-full bg-green-500/80"></span>
                             <span class="text-[10px] text-slate-400 font-bold tracking-wider ml-2">TALLYERP NEXUS CORE v1.0</span>
                         </div>
-                        <img src="{% static 'finance_dashboard.png' %}" alt="TallyERP Nexus Dashboard" class="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-all duration-500 rounded-b-[1.2rem] shadow-inner">
+                        <img src="{% static 'finance_dashboard.png' %}?v=2.0" alt="TallyERP Nexus Dashboard" class="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-all duration-500 rounded-b-[1.2rem] shadow-inner">
                     </div>
                 </div>
 
-                <!-- Floating Interactive Widget 1: Voucher Sync Status -->
+                <!-- Floating Interactive Widgets have been commented out to keep the illustration simple and clean -->
+                <!-- 
                 <div class="absolute top-[-30px] right-[-20px] z-20 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 float-2">
                     <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
                         <svg class="w-5 h-5 text-emerald-600 animate-pulse" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -201,7 +241,6 @@
                     </div>
                 </div>
 
-                <!-- Floating Interactive Widget 2: AI active -->
                 <div class="absolute bottom-[-20px] right-[40px] z-20 bg-gradient-to-br from-navy-900 to-navy-950 p-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 float-1">
                     <div class="w-10 h-10 bg-accent-500/10 rounded-xl flex items-center justify-center">
                         <svg class="w-6 h-6 text-accent-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -214,7 +253,6 @@
                     </div>
                 </div>
 
-                <!-- Floating Interactive Widget 3: Approval Notifications -->
                 <div class="absolute bottom-[40px] left-[-30px] z-20 bg-white/95 backdrop-blur-xl p-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 float-2">
                     <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -229,6 +267,7 @@
                         <p class="text-[10px] font-bold text-slate-400">Requires Manager Sign-off</p>
                     </div>
                 </div>
+                -->
             </div>
         </div>
     </section>
@@ -619,7 +658,7 @@
                     <div class="space-y-6 text-xs sm:text-sm font-mono text-slate-300">
                         <div class="flex items-center justify-between p-3.5 bg-slate-900/60 rounded-xl border border-slate-800">
                             <span class="text-accent-400 font-bold">Cloud Web Console</span>
-                            <span class="text-slate-500">React/Tailwind UI</span>
+                            <span class="text-slate-500">HTML/Tailwind UI</span>
                             <span class="text-emerald-400 font-bold">HTTPS Post</span>
                         </div>
                         <div class="flex justify-center">
@@ -663,7 +702,7 @@
             
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <a href="{% url 'login' %}" class="w-full sm:w-auto px-10 py-4 bg-accent-600 text-white rounded-2xl font-bold hover:bg-accent-700 transition-all shadow-lg shadow-accent-500/20">
-                    Launch Dashboard
+                    Log In
                 </a>
                 <a href="{% url 'about-project' %}" class="w-full sm:w-auto px-10 py-4 border border-slate-700 text-slate-300 rounded-2xl font-bold hover:bg-slate-800 transition-all">
                     View Documentation
