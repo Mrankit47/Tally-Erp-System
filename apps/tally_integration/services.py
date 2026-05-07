@@ -510,7 +510,7 @@ class TallySyncService:
         try:
             xml_request = self.generator.get_create_stock_item_xml(
                 name=stock_item.name,
-                unit_of_measure=stock_item.unit_of_measure
+                unit=stock_item.unit_of_measure
             )
             xml_response = self.client.post_with_retry(xml_request)
 

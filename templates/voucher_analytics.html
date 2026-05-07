@@ -1,0 +1,633 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Financial Intelligence - TallyERP Nexus{% endblock %}
+
+{% block content %}
+<div class="space-y-8 animate-fade-in pb-16">
+    <!-- Header Area -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+                    <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </span>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Financial Intelligence Dashboard</h1>
+            </div>
+            <p class="text-sm text-slate-500 mt-1">Real-time analytical metrics, risk modeling, and executive AI insights powered by Groq.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="refreshBtn" onclick="fetchAnalyticsData(true)" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold text-slate-700 shadow-sm transition-all active:scale-[0.98]">
+                <svg id="refreshIcon" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/></svg>
+                <span>Refresh Insights</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Grid: Health HUD and AI Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left: Circular Health Meter -->
+        <div class="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-b from-indigo-50/10 to-transparent pointer-events-none"></div>
+            
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6">Financial Health Score</h3>
+            
+            <div class="relative w-48 h-48 flex items-center justify-center">
+                <!-- SVG Gauge -->
+                <svg class="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" stroke-width="8"></circle>
+                    <circle id="healthCircle" cx="50" cy="50" r="40" fill="transparent" stroke="url(#healthGrad)" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                    <defs>
+                        <linearGradient id="healthGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#6366f1"></stop>
+                            <stop offset="100%" stop-color="#14b8a6"></stop>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                
+                <div class="flex flex-col items-center justify-center">
+                    <span id="healthScoreText" class="text-4xl font-extrabold text-slate-900 tracking-tight">0</span>
+                    <span id="healthStatusBadge" class="text-xs font-bold uppercase px-2.5 py-1 rounded-full border mt-2">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Health Deductions list -->
+            <div class="w-full mt-6 border-t border-slate-100 pt-5 text-left">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Key Score Factors</h4>
+                <div id="deductionsList" class="space-y-2 text-xs text-slate-600">
+                    <div class="flex gap-2 items-start">
+                        <span class="text-emerald-500 font-bold">✓</span>
+                        <span>Auditing system indicators report healthy parameters.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Groq AI Commentary -->
+        <div class="lg:col-span-8 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-2.5 w-2.5 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+                        </span>
+                        <h3 class="text-base font-bold text-slate-900">Executive AI insights Report</h3>
+                    </div>
+                    <span class="text-xs text-slate-400 font-medium">As of: <span id="insightsTimestamp">-</span></span>
+                </div>
+                
+                <!-- Markdown content rendering block -->
+                <div id="insightsContainer" class="prose prose-sm max-w-none text-slate-600 leading-relaxed space-y-4">
+                    <div class="animate-pulse space-y-3">
+                        <div class="h-4 bg-slate-100 rounded w-1/3"></div>
+                        <div class="h-4 bg-slate-100 rounded w-full"></div>
+                        <div class="h-4 bg-slate-100 rounded w-5/6"></div>
+                        <div class="h-4 bg-slate-100 rounded w-2/3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-100 pt-4 mt-6 flex justify-between items-center text-xs text-slate-400">
+                <span>Model: <b>Groq Llama-3.1-8B-Instant</b></span>
+                <span>Analyst Mode: <b>Corporate ERP Auditor</b></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytical KPIs Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <!-- Card 1: Revenue -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Revenue (Monthly)</span>
+                <span id="revenueTrend" class="text-xs font-bold flex items-center gap-1">--</span>
+            </div>
+            <div class="mt-4">
+                <h3 id="revenueValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
+                <p id="prevRevenueText" class="text-xs text-slate-400 mt-1">Prev: --</p>
+            </div>
+        </div>
+
+        <!-- Card 2: Expenses -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses (Monthly)</span>
+                <span id="expenseRatio" class="text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-100">Ratio: --%</span>
+            </div>
+            <div class="mt-4">
+                <h3 id="expenseValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
+                <p id="prevExpenseText" class="text-xs text-slate-400 mt-1">Top Category: --</p>
+            </div>
+        </div>
+
+        <!-- Card 3: Cashflow -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Cashflow</span>
+                <span id="cashflowStatus" class="w-2.5 h-2.5 rounded-full"></span>
+            </div>
+            <div class="mt-4">
+                <h3 id="cashflowValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
+                <div class="flex justify-between text-[10px] text-slate-400 mt-1.5 border-t border-slate-50 pt-1.5">
+                    <span>In: <b id="inflowText" class="text-emerald-600">₹0</b></span>
+                    <span>Out: <b id="outflowText" class="text-rose-600">₹0</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: GST Obligations -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Duties & Taxes</span>
+                <span class="text-[10px] font-bold text-indigo-600 px-1.5 py-0.5 rounded-md bg-indigo-50">GST</span>
+            </div>
+            <div class="mt-4">
+                <h3 id="gstValue" class="text-2xl font-extrabold text-slate-900 tracking-tight">₹0.00</h3>
+                <p class="text-xs text-slate-400 mt-1">Estimated dynamic tax due</p>
+            </div>
+        </div>
+
+        <!-- Card 5: Pending Approvals -->
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Approvals</span>
+                <span class="p-1 rounded bg-amber-50 text-amber-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+            </div>
+            <div class="mt-4">
+                <h3 id="approvalCount" class="text-2xl font-extrabold text-slate-900 tracking-tight">0</h3>
+                <p id="totalVouchersText" class="text-xs text-slate-400 mt-1">Vouchers total: --</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Visualization Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Sales & Expenses Line Graph -->
+        <div class="lg:col-span-8 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <span class="w-1.5 h-3.5 bg-indigo-500 rounded-full"></span>
+                Month-over-Month Revenue & Expenses Comparison
+            </h3>
+            <div class="relative h-80">
+                <canvas id="salesExpensesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Expense Share Doughnut and Forecast -->
+        <div class="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <span class="w-1.5 h-3.5 bg-teal-500 rounded-full"></span>
+                    Expense Distribution (By Category)
+                </h3>
+                <div class="relative h-56 flex items-center justify-center">
+                    <canvas id="expensePieChart"></canvas>
+                    <div id="noExpenseText" class="absolute hidden text-xs text-slate-400">No expense records found.</div>
+                </div>
+            </div>
+            
+            <!-- Moving Average Projections -->
+            <div class="border-t border-slate-100 pt-5 mt-4">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">AI Trend Forecast (SMA Projections)</h4>
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div class="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                        <span class="text-slate-400">Expected Sales</span>
+                        <div id="forecastSales" class="font-bold text-slate-800 text-sm mt-0.5">₹0.00</div>
+                    </div>
+                    <div class="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                        <span class="text-slate-400">Expected Expense</span>
+                        <div id="forecastExpense" class="font-bold text-slate-800 text-sm mt-0.5">₹0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auditing Alerts & Financial Risks HUD -->
+    <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <span class="w-1.5 h-3.5 bg-rose-500 rounded-full"></span>
+                Automated ERP Audit & Ledger Anomaly Alerts
+            </h3>
+            <span id="totalRisksBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100">0 Alerts</span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100">
+                <thead>
+                    <tr class="text-xs text-slate-400 uppercase tracking-wider text-left">
+                        <th class="py-3 px-4 font-semibold">Severity</th>
+                        <th class="py-3 px-4 font-semibold">Voucher Ref</th>
+                        <th class="py-3 px-4 font-semibold">Audit Flag Title</th>
+                        <th class="py-3 px-4 font-semibold">Description</th>
+                    </tr>
+                </thead>
+                <tbody id="risksTableBody" class="divide-y divide-slate-100 text-sm text-slate-600">
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-slate-400 text-xs">
+                            Checking ledger transactions for audit compliance...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Chart JS Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Dashboard Javascript Mechanics -->
+<script>
+    // Global chart instances
+    let salesExpensesChart = null;
+    let expensePieChart = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        fetchAnalyticsData(false);
+    });
+
+    function fetchAnalyticsData(forceRefresh) {
+        const refreshBtn = document.getElementById("refreshBtn");
+        const refreshIcon = document.getElementById("refreshIcon");
+        
+        if (forceRefresh && refreshBtn && refreshIcon) {
+            refreshBtn.disabled = true;
+            refreshIcon.classList.add("animate-spin");
+        }
+
+        let url = "{% url 'voucher_analytics_api' %}";
+        if (forceRefresh) {
+            url += "?refresh=true";
+        }
+
+        fetch(url)
+            .then(res => res.json())
+            .then(payload => {
+                populateDashboard(payload);
+            })
+            .catch(err => {
+                console.error("Failed to load financial intelligence metrics:", err);
+            })
+            .finally(() => {
+                if (forceRefresh && refreshBtn && refreshIcon) {
+                    refreshBtn.disabled = false;
+                    refreshIcon.classList.remove("animate-spin");
+                }
+            });
+    }
+
+    function populateDashboard(payload) {
+        if (!payload || !payload.metrics) {
+            console.warn("Payload metrics are empty. Showing default clean states.");
+            return;
+        }
+        const m = payload.metrics;
+        
+        // 1. Render Health Score Radial meter
+        const healthObj = m.health || { score: 100, status: "EXCELLENT", deductions: [] };
+        const score = healthObj.score !== undefined ? healthObj.score : 100;
+        
+        const scoreText = document.getElementById("healthScoreText");
+        if (scoreText) scoreText.innerText = score;
+        
+        const circle = document.getElementById("healthCircle");
+        if (circle) {
+            const offset = 251.2 - (score / 100) * 251.2;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        const badge = document.getElementById("healthStatusBadge");
+        if (badge) {
+            const status = healthObj.status || "EXCELLENT";
+            badge.innerText = status;
+            if (status === "EXCELLENT") {
+                badge.className = "text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border-emerald-200 mt-2";
+            } else if (status === "STABLE") {
+                badge.className = "text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 mt-2";
+            } else {
+                badge.className = "text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border-rose-200 mt-2";
+            }
+        }
+
+        // Render Score deductions
+        const listContainer = document.getElementById("deductionsList");
+        if (listContainer) {
+            listContainer.innerHTML = "";
+            if (healthObj.deductions && healthObj.deductions.length > 0) {
+                healthObj.deductions.forEach(d => {
+                    listContainer.innerHTML += `
+                        <div class="flex gap-2 items-start">
+                            <span class="text-rose-500 font-bold">!</span>
+                            <span class="text-slate-500">${d}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                listContainer.innerHTML = `
+                    <div class="flex gap-2 items-start">
+                        <span class="text-emerald-500 font-bold">✓</span>
+                        <span class="text-slate-500">Perfect financial score. No negative anomalies flagged.</span>
+                    </div>
+                `;
+            }
+        }
+
+        // 2. Render Executive AI Report
+        const tsElem = document.getElementById("insightsTimestamp");
+        if (tsElem) {
+            tsElem.innerText = payload.timestamp ? new Date(payload.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+        }
+        
+        const insightsContainer = document.getElementById("insightsContainer");
+        if (insightsContainer) {
+            let aiMarkdown = payload.ai_insights || "";
+            let formattedCommentary = aiMarkdown
+                .replace(/\*\*\*(.*?)\*\*\*/g, '<b><i>$1</i></b>')
+                .replace(/\*\*(.*?)\*\*/g, '<b class="text-slate-900 font-bold block mt-3">$1</b>')
+                .replace(/- (.*?)\n/g, '<li class="list-disc ml-5 text-slate-600">$1</li>')
+                .replace(/\n\n/g, '<p class="mt-2"></p>');
+                
+            insightsContainer.innerHTML = formattedCommentary || "<p class='text-slate-400 text-xs'>No AI commentary generated yet.</p>";
+        }
+
+        // 3. Populate metrics grid
+        const rev = m.revenue || { current_month_sales: 0, prev_month_sales: 0, growth_percentage: 0, monthly_trends: [] };
+        const exp = m.expenses || { current_month_expenses: 0, expense_ratio: 0, top_categories: [], monthly_expense_trends: [] };
+        const cash = m.cashflow || { net_cashflow: 0, inflow: 0, outflow: 0, receivables: 0, payables: 0 };
+        const gst = m.gst || { net_gst_liability: 0 };
+        const appr = m.approvals || { pending_approvals: 0, total_vouchers: 0 };
+        const forecast = m.forecast || { projected_sales: 0, projected_expenses: 0 };
+
+        // Sales
+        const revValElem = document.getElementById("revenueValue");
+        if (revValElem) {
+            revValElem.innerText = `₹${(rev.current_month_sales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        }
+        const prevRevElem = document.getElementById("prevRevenueText");
+        if (prevRevElem) {
+            prevRevElem.innerText = `Prev: ₹${(rev.prev_month_sales || 0).toLocaleString('en-IN')}`;
+        }
+        const revTrend = document.getElementById("revenueTrend");
+        if (revTrend) {
+            const growth = rev.growth_percentage || 0;
+            if (growth >= 0) {
+                revTrend.className = "text-xs font-bold flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded";
+                revTrend.innerHTML = `↑ ${growth}%`;
+            } else {
+                revTrend.className = "text-xs font-bold flex items-center gap-1 text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded";
+                revTrend.innerHTML = `↓ ${Math.abs(growth)}%`;
+            }
+        }
+
+        // Expenses
+        const expValElem = document.getElementById("expenseValue");
+        if (expValElem) {
+            expValElem.innerText = `₹${(exp.current_month_expenses || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        }
+        const expRatioElem = document.getElementById("expenseRatio");
+        if (expRatioElem) {
+            expRatioElem.innerText = `Ratio: ${exp.expense_ratio || 0}%`;
+        }
+        const prevExpElem = document.getElementById("prevExpenseText");
+        if (prevExpElem) {
+            const topCat = (exp.top_categories && exp.top_categories.length > 0) ? exp.top_categories[0].category : "None";
+            prevExpElem.innerText = `Top Expense: ${topCat}`;
+        }
+
+        // Cashflow
+        const cashValElem = document.getElementById("cashflowValue");
+        if (cashValElem) {
+            cashValElem.innerText = `₹${(cash.net_cashflow || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        }
+        const inflowElem = document.getElementById("inflowText");
+        if (inflowElem) {
+            inflowElem.innerText = `₹${Math.round(cash.inflow || 0).toLocaleString('en-IN')}`;
+        }
+        const outflowElem = document.getElementById("outflowText");
+        if (outflowElem) {
+            outflowElem.innerText = `₹${Math.round(cash.outflow || 0).toLocaleString('en-IN')}`;
+        }
+        
+        const cashStatus = document.getElementById("cashflowStatus");
+        if (cashStatus) {
+            if ((cash.net_cashflow || 0) >= 0) {
+                cashStatus.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+            } else {
+                cashStatus.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse";
+            }
+        }
+
+        // GST Due
+        const gstElem = document.getElementById("gstValue");
+        if (gstElem) {
+            gstElem.innerText = `₹${(gst.net_gst_liability || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        }
+
+        // Approvals
+        const apprElem = document.getElementById("approvalCount");
+        if (apprElem) {
+            apprElem.innerText = appr.pending_approvals || 0;
+        }
+        const totVouchElem = document.getElementById("totalVouchersText");
+        if (totVouchElem) {
+            totVouchElem.innerText = `Vouchers total: ${appr.total_vouchers || 0}`;
+        }
+
+        // SMA Forecasts
+        const fSalesElem = document.getElementById("forecastSales");
+        if (fSalesElem) {
+            fSalesElem.innerText = `₹${(forecast.projected_sales || 0).toLocaleString('en-IN')}`;
+        }
+        const fExpElem = document.getElementById("forecastExpense");
+        if (fExpElem) {
+            fExpElem.innerText = `₹${(forecast.projected_expenses || 0).toLocaleString('en-IN')}`;
+        }
+
+        // 4. Render charts
+        renderSalesExpensesGraph(rev.monthly_trends || [], exp.monthly_expense_trends || []);
+        renderExpensePie(exp.top_categories || []);
+
+        // 5. Populate Risks/Anomalies HUD table
+        populateRisksTable(m.risks || []);
+    }
+
+    function renderSalesExpensesGraph(revTrends, expTrends) {
+        if (salesExpensesChart) {
+            salesExpensesChart.destroy();
+        }
+
+        const labels = revTrends.map(item => item.month || "-");
+        const revData = revTrends.map(item => item.amount || 0);
+        const expData = expTrends.map(item => item.amount || 0);
+
+        const canvas = document.getElementById('salesExpensesChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        salesExpensesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Total Sales (Revenue)',
+                        data: revData,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Total Expenses',
+                        data: expData,
+                        borderColor: '#14b8a6',
+                        backgroundColor: 'rgba(20, 184, 166, 0.05)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 11, weight: '500' },
+                            usePointStyle: true,
+                            boxWidth: 6
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                        ticks: {
+                            callback: function(val) {
+                                return '₹' + val.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderExpensePie(topCategories) {
+        if (expensePieChart) {
+            expensePieChart.destroy();
+        }
+
+        const canvas = document.getElementById('expensePieChart');
+        const emptyText = document.getElementById('noExpenseText');
+        if (!canvas) return;
+
+        if (!topCategories || topCategories.length === 0) {
+            canvas.style.display = "none";
+            if (emptyText) emptyText.style.display = "block";
+            return;
+        }
+
+        canvas.style.display = "block";
+        if (emptyText) emptyText.style.display = "none";
+
+        const labels = topCategories.map(item => item.category || "-");
+        const data = topCategories.map(item => item.amount || 0);
+
+        const ctx = canvas.getContext('2d');
+        expensePieChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: ['#6366f1', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: { size: 10, weight: '500' },
+                            usePointStyle: true,
+                            boxWidth: 5
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function populateRisksTable(risks) {
+        const body = document.getElementById("risksTableBody");
+        const totalBadge = document.getElementById("totalRisksBadge");
+        if (!body) return;
+        
+        if (totalBadge) {
+            totalBadge.innerText = `${risks.length} Audit Warnings`;
+        }
+        body.innerHTML = "";
+
+        if (!risks || risks.length === 0) {
+            body.innerHTML = `
+                <tr>
+                    <td colspan="4" class="py-8 text-center text-xs text-slate-400">
+                        <span class="inline-block p-2 rounded-full bg-emerald-50 text-emerald-500 mb-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </span>
+                        <div class="font-bold text-slate-700">Perfect Audit Status</div>
+                        No suspicious booking patterns, duplicate entries, or narration errors found.
+                    </td>
+                </tr>
+            `;
+            if (totalBadge) {
+                totalBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100";
+            }
+            return;
+        }
+
+        // Sort HIGH first
+        const severityOrder = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+        risks.sort((a, b) => severityOrder[b.severity] - severityOrder[a.severity]);
+
+        risks.forEach(r => {
+            let sevBadge = "";
+            if (r.severity === "HIGH") {
+                sevBadge = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>High</span>`;
+            } else if (r.severity === "MEDIUM") {
+                sevBadge = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-100"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Medium</span>`;
+            } else {
+                sevBadge = `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>Low</span>`;
+            }
+
+            body.innerHTML += `
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="py-3 px-4 font-semibold">${sevBadge}</td>
+                    <td class="py-3 px-4 font-mono font-bold text-indigo-600 text-xs">${r.ref || 'N/A'}</td>
+                    <td class="py-3 px-4 font-bold text-slate-800">${r.title || "-"}</td>
+                    <td class="py-3 px-4 text-xs text-slate-500">${r.description || "-"}</td>
+                </tr>
+            `;
+        });
+        
+        if (totalBadge) {
+            totalBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100";
+        }
+    }
+</script>
+{% endblock %}

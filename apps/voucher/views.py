@@ -230,3 +230,262 @@ def voucher_detail_view(request, voucher_id):
         'company': active_company,
     }
     return render(request, 'voucher_detail.html', context)
+
+
+import os
+import difflib
+from django.utils.dateparse import parse_date
+from ai.services.ocr_service import extract_text_from_file
+from ai.services.ai_parser import parse_ocr_text_to_json
+from ledger.models import Ledger
+from inventory.models import StockItem, StockTransaction, TransactionType
+from taxation.models import HSNCode
+from .models import VoucherEntry
+
+@login_required
+@role_required(['Admin', 'Accountant', 'Manager'])
+def voucher_scan_view(request):
+    """Renders the AI Invoice Scanner page."""
+    company = getattr(request, 'active_company', None)
+    context = {
+        'active_page': 'scan',
+        'company': company,
+    }
+    return render(request, 'voucher_scan.html', context)
+
+
+@login_required
+@role_required(['Admin', 'Accountant', 'Manager'])
+@require_POST
+def voucher_scan_api(request):
+    """Processes uploaded invoice, extracts metadata via Groq AI, and performs fuzzy db mapping."""
+    company = getattr(request, 'active_company', None)
+    if not company:
+        return JsonResponse({'error': 'Active company context required.'}, status=400)
+
+    uploaded_file = request.FILES.get('invoice_file')
+    if not uploaded_file:
+        return JsonResponse({'error': 'No file uploaded.'}, status=400)
+
+    if uploaded_file.size > 5 * 1024 * 1024:
+        return JsonResponse({'error': 'File size exceeds 5MB limit.'}, status=400)
+
+    ext = os.path.splitext(uploaded_file.name)[1].lower()
+    if ext not in ['.pdf', '.png', '.jpg', '.jpeg', '.webp']:
+        return JsonResponse({'error': 'Unsupported file format.'}, status=400)
+
+    try:
+        raw_text = extract_text_from_file(uploaded_file, uploaded_file.name)
+        parsed_data = parse_ocr_text_to_json(raw_text)
+
+        # Fuzzy Match Vendor/Party
+        creditors = Ledger.objects.filter(company=company, group__name__icontains='Creditors')
+        creditor_choices = [{'id': str(c.id), 'name': c.name} for c in creditors]
+        
+        matched_vendor_id = ""
+        matched_vendor_name = ""
+        if parsed_data.get('vendor_name') and creditor_choices:
+            ledger_names = [c['name'] for c in creditor_choices]
+            matches = difflib.get_close_matches(parsed_data['vendor_name'], ledger_names, n=1, cutoff=0.3)
+            if matches:
+                matched_vendor_name = matches[0]
+                matched_vendor_id = next(c['id'] for c in creditor_choices if c['name'] == matched_vendor_name)
+
+        # Match Stock Items
+        stock_items = StockItem.objects.filter(company=company)
+        item_choices = [{'id': str(s.id), 'name': s.name} for s in stock_items]
+
+        parsed_items = parsed_data.get('items', [])
+        for item in parsed_items:
+            item['matched_id'] = ""
+            item['matched_name'] = ""
+            if item.get('item_name') and item_choices:
+                names = [s['name'] for s in item_choices]
+                matches = difflib.get_close_matches(item['item_name'], names, n=1, cutoff=0.3)
+                if matches:
+                    item['matched_name'] = matches[0]
+                    item['matched_id'] = next(s['id'] for s in item_choices if s['name'] == matches[0])
+
+        # Fetch Purchase and Tax Ledgers
+        purchase_ledgers = Ledger.objects.filter(company=company, group__name__icontains='Purchase')
+        purchase_choices = [{'id': str(p.id), 'name': p.name} for p in purchase_ledgers]
+
+        tax_ledgers = Ledger.objects.filter(company=company, group__name__icontains='Duties')
+        tax_choices = [{'id': str(t.id), 'name': t.name} for t in tax_ledgers]
+
+        response_payload = {
+            'extracted': parsed_data,
+            'matched_vendor_id': matched_vendor_id,
+            'matched_vendor_name': matched_vendor_name,
+            'creditors': creditor_choices,
+            'purchase_ledgers': purchase_choices,
+            'tax_ledgers': tax_choices,
+            'stock_items': item_choices,
+        }
+        return JsonResponse(response_payload)
+
+    except Exception as e:
+        logger.error(f"Error processing invoice: {e}", exc_info=True)
+        return JsonResponse({'error': f"Failed to parse invoice: {str(e)}"}, status=500)
+
+
+@login_required
+@role_required(['Admin', 'Accountant', 'Manager'])
+@require_POST
+def voucher_scan_save_api(request):
+    """Validates reviewed invoice data and commits a balanced double-entry Purchase Voucher with inventory sync."""
+    company = getattr(request, 'active_company', None)
+    if not company:
+        return JsonResponse({'error': 'Active company context required.'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        vendor_id = data.get('vendor_id')
+        purchase_ledger_id = data.get('purchase_ledger_id')
+        invoice_number = data.get('invoice_number', '')
+        invoice_date_str = data.get('invoice_date', '')
+        narration = data.get('narration', '')
+        subtotal = Decimal(str(data.get('subtotal', 0)))
+        cgst = Decimal(str(data.get('cgst', 0)))
+        sgst = Decimal(str(data.get('sgst', 0)))
+        igst = Decimal(str(data.get('igst', 0)))
+        total_amount = Decimal(str(data.get('total_amount', 0)))
+        items = data.get('items', [])
+
+        if not vendor_id or not purchase_ledger_id:
+            return JsonResponse({'error': 'Supplier and Purchase Ledger are required.'}, status=400)
+
+        invoice_date = parse_date(invoice_date_str) if invoice_date_str else timezone.now().date()
+
+        vendor_ledger = get_object_or_404(Ledger, pk=vendor_id, company=company)
+        purchase_ledger = get_object_or_404(Ledger, pk=purchase_ledger_id, company=company)
+
+        # Start atomic transaction block
+        with transaction.atomic():
+            # 1. Create Voucher Header
+            voucher = Voucher.objects.create(
+                company=company,
+                date=invoice_date,
+                voucher_type=VoucherType.PURCHASE,
+                narration=f"AI Scanned Invoice: No. {invoice_number}. {narration}".strip(),
+                party_name=vendor_ledger.name,
+                is_posted=True,
+                status=VoucherStatus.APPROVED,
+                created_by=request.user,
+                updated_by=request.user
+            )
+
+            # 2. Credit Party Ledger (CR)
+            VoucherEntry.objects.create(
+                company=company,
+                voucher=voucher,
+                ledger=vendor_ledger,
+                amount=total_amount,
+                entry_type=EntryType.CREDIT,
+                created_by=request.user,
+                updated_by=request.user
+            )
+
+            # 3. Debit Stock Item Line Entries (DR)
+            for item in items:
+                stock_item_id = item.get('stock_item_id')
+                qty = Decimal(str(item.get('quantity', 0)))
+                rate = Decimal(str(item.get('rate', 0)))
+                line_amount = Decimal(str(item.get('amount', 0)))
+                hsn_code = item.get('hsn_code', '')
+
+                if not stock_item_id or qty <= 0:
+                    continue
+
+                stock_item = get_object_or_404(StockItem, pk=stock_item_id, company=company)
+                
+                hsn_obj = None
+                if hsn_code:
+                    hsn_obj, _ = HSNCode.objects.get_or_create(
+                        company=company,
+                        code=hsn_code,
+                        defaults={'description': f'OCR HSN {hsn_code}', 'tax_rate': Decimal('18.00')}
+                    )
+
+                entry = VoucherEntry.objects.create(
+                    company=company,
+                    voucher=voucher,
+                    ledger=purchase_ledger,
+                    amount=line_amount,
+                    entry_type=EntryType.DEBIT,
+                    stock_item=stock_item,
+                    quantity=qty,
+                    rate=rate,
+                    hsn_code=hsn_obj,
+                    created_by=request.user,
+                    updated_by=request.user
+                )
+
+                # Stock Transaction Sync (IN for Purchase)
+                StockTransaction.objects.create(
+                    company=company,
+                    stock_item=stock_item,
+                    voucher_entry=entry,
+                    quantity=qty,
+                    rate=rate,
+                    transaction_type=TransactionType.IN
+                )
+
+            # 4. Debit CGST/SGST/IGST Entries (DR)
+            duties_ledgers = Ledger.objects.filter(company=company, group__name__icontains='Duties')
+            
+            def create_tax_entry(tax_amount, keyword):
+                if tax_amount <= 0:
+                    return
+                tax_ledger = duties_ledgers.filter(name__icontains=keyword).first()
+                if not tax_ledger and duties_ledgers.exists():
+                    tax_ledger = duties_ledgers.first()
+                if tax_ledger:
+                    VoucherEntry.objects.create(
+                        company=company,
+                        voucher=voucher,
+                        ledger=tax_ledger,
+                        amount=tax_amount,
+                        entry_type=EntryType.DEBIT,
+                        created_by=request.user,
+                        updated_by=request.user
+                    )
+
+            create_tax_entry(cgst, 'CGST')
+            create_tax_entry(sgst, 'SGST')
+            create_tax_entry(igst, 'IGST')
+
+        return JsonResponse({'status': 'success', 'message': f'Purchase Invoice {voucher.number} generated successfully!'})
+
+    except Exception as e:
+        logger.error(f"Error saving scanned invoice voucher: {e}", exc_info=True)
+        return JsonResponse({'error': f"Failed to record invoice: {str(e)}"}, status=500)
+
+
+from ai.services.insights_service import generate_company_insights_summary
+
+@login_required
+@role_required(['Admin', 'Accountant', 'Manager'])
+def voucher_analytics_view(request):
+    """
+    Renders the beautiful AI Financial Analytics & Insights Dashboard.
+    """
+    return render(request, 'voucher_analytics.html', {
+        'active_page': 'analytics',
+        'company': request.active_company
+    })
+
+@login_required
+@role_required(['Admin', 'Accountant', 'Manager'])
+def voucher_analytics_api(request):
+    """
+    Computes analytical ratios and returns the cached Groq AI financial commentary.
+    """
+    company = getattr(request, 'active_company', None)
+    if not company:
+        return JsonResponse({'error': 'No active company context.'}, status=400)
+        
+    refresh = request.GET.get('refresh', 'false').lower() == 'true'
+    payload = generate_company_insights_summary(company, force_refresh=refresh)
+    return JsonResponse(payload)
+

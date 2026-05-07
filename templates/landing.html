@@ -1,10 +1,10 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NextGen ERP — Modern Financial Governance</title>
+    <title>TallyERP Nexus — Modern Financial Control Built Around Tally ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
@@ -13,209 +13,770 @@
                 extend: {
                     fontFamily: { 'sans': ['Plus Jakarta Sans', 'sans-serif'] },
                     colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
+                        navy: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                        accent: {
+                            400: '#38bdf8',
                             500: '#0ea5e9',
                             600: '#0284c7',
                             700: '#0369a1',
-                            900: '#0c4a6e',
                         }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     }
                 }
             }
         }
     </script>
     <style>
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); }
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0px); } }
-        .float { animation: float 6s ease-in-out infinite; }
+        .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(16px); }
+        .glass-dark { background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(16px); }
+        @keyframes float-y {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        @keyframes float-y-reverse {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(6px); }
+        }
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 0.12; transform: scale(1); }
+            50% { opacity: 0.22; transform: scale(1.05); }
+        }
+        .float-1 { animation: float-y 8s ease-in-out infinite; }
+        .float-2 { animation: float-y-reverse 9s ease-in-out infinite; }
+        .glow-bg { animation: glow-pulse 10s ease-in-out infinite; }
         .gradient-text { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* Soft Scroll Reveal */
+        .reveal-element { opacity: 0; transform: translateY(16px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal-element.active { opacity: 1; transform: translateY(0); }
+
+        /* Minimal Nav Underline Hover */
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            transform: scaleX(0);
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+            transform-origin: bottom right;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .nav-link:hover::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+
+        /* Smooth card text transition */
+        .text-slide-up {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-hover-box:hover .text-slide-up {
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
 
-    <!-- ═══════════ NAVIGATION ═══════════ -->
-    <nav class="fixed top-0 w-full z-50 px-6 py-4">
-        <div class="max-w-7xl mx-auto flex items-center justify-between glass px-6 py-3 rounded-2xl border border-white/40 shadow-sm">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+    <!-- ═══════════ STICKY NAVBAR ═══════════ -->
+    <nav id="navbar" class="fixed top-0 w-full z-50 px-6 py-4 transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex items-center justify-between glass px-6 py-3 rounded-2xl border border-white/50 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg border border-accent-100/50 flex items-center justify-center bg-white p-1">
+                    <img src="{% static 'nexus_logo.png' %}" alt="TallyERP Nexus Logo" class="w-full h-full object-contain">
                 </div>
-                <span class="text-xl font-extrabold tracking-tight text-slate-900">NextGen <span class="text-brand-600">ERP</span></span>
+                <span class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">TallyERP <span class="text-accent-600 font-semibold bg-accent-50 px-2.5 py-0.5 rounded-lg text-sm border border-accent-100">Nexus</span></span>
             </div>
-            <div class="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                <a href="#features" class="hover:text-brand-600 transition-colors">Features</a>
-                <a href="#workflow" class="hover:text-brand-600 transition-colors">Workflow</a>
-                <a href="#compliance" class="hover:text-brand-600 transition-colors">Compliance</a>
+            
+            <div class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
+                <a href="#why-nexus" class="nav-link hover:text-accent-600 transition-colors">Why Nexus</a>
+                <a href="#features" class="nav-link hover:text-accent-600 transition-colors">Core Features</a>
+                <a href="#workflow" class="nav-link hover:text-accent-600 transition-colors">Sync Workflow</a>
+                <a href="#governance" class="nav-link hover:text-accent-600 transition-colors">Governance</a>
+                <a href="#architecture" class="nav-link hover:text-accent-600 transition-colors">Architecture</a>
             </div>
+
             <div class="flex items-center gap-4">
-                <a href="{% url 'login' %}" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
-                    Login to Dashboard
+                <a href="{% url 'login' %}" class="px-5 py-2.5 bg-navy-900 text-white rounded-xl text-sm font-bold hover:bg-navy-800 transition-all shadow-md shadow-navy-900/10">
+                    Launch Dashboard
                 </a>
             </div>
         </div>
     </nav>
 
-    <!-- ═══════════ HERO SECTION ═══════════ -->
-    <section class="pt-32 pb-20 px-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 -z-10 opacity-20">
-            <div class="w-[800px] h-[800px] bg-brand-200 rounded-full blur-[120px]"></div>
+    <!-- ═══════════ SECTION 1: HERO SECTION ═══════════ -->
+    <section class="relative pt-40 pb-28 px-6 overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50">
+        <!-- Animated Backdrop Glows -->
+        <div class="absolute inset-0 -z-10 overflow-hidden">
+            <div class="glow-bg absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-accent-200/40 rounded-full blur-[100px]"></div>
+            <div class="glow-bg absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-[100px] [animation-delay:4s]"></div>
         </div>
-        
-        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-            <div class="space-y-8">
-                <div class="inline-flex items-center gap-2 px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold tracking-wide">
-                    <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-                    GST COMPLIANT & TALLY READY
+
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
+            <!-- Hero Content -->
+            <div class="lg:col-span-7 space-y-8 text-center lg:text-left">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-accent-50 to-indigo-50 text-accent-700 rounded-full text-xs font-bold tracking-wide border border-accent-100 shadow-sm float-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-accent-500 animate-pulse"></span>
+                    GST COMPLIANT • AI ASSISTED • TALLY INTEGRATED
                 </div>
-                <h1 class="text-6xl lg:text-7xl font-extrabold leading-[1.1] text-slate-900">
-                    Financial Governance <br/>
-                    <span class="gradient-text italic">Redefined.</span>
+                
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] text-navy-900 tracking-tight">
+                    Modern Financial Control <br class="hidden sm:inline"/>
+                    Built Around <span class="gradient-text">Tally ERP.</span>
                 </h1>
-                <p class="text-xl text-slate-600 leading-relaxed max-w-lg">
-                    A professional-grade ERP system built for modern businesses. Sync seamlessly with Tally, automate GST invoicing, and enforce secure approval workflows.
+                
+                <p class="text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                    Manage vouchers, approvals, ledgers, inventory, and GST workflows through a secure web-based ERP platform integrated directly with Tally ERP.
                 </p>
-                <div class="flex items-center gap-4 pt-4">
-                    <a href="{% url 'login' %}" class="px-8 py-4 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-2xl shadow-brand-500/30 flex items-center gap-2 group">
-                        Access System
-                        <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                
+                <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+                    <a href="{% url 'login' %}" class="w-full sm:w-auto px-8 py-4 bg-accent-600 text-white rounded-2xl font-bold hover:bg-accent-700 transition-all shadow-lg shadow-accent-500/25 flex items-center justify-center gap-2 group">
+                        Launch ERP Dashboard
+                        <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                        </svg>
                     </a>
-                    <a href="#features" class="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all">
-                        Explore Features
+                    <a href="#why-nexus" class="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center">
+                        Explore Workflow
                     </a>
+                </div>
+
+                <!-- Hero Client Badges / Social proof -->
+                <div class="pt-8 border-t border-slate-100">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Enterprise Grade Integrations</p>
+                    <div class="flex flex-wrap gap-6 justify-center lg:justify-start items-center opacity-60">
+                        <span class="text-sm font-bold text-slate-500 flex items-center gap-1.5">
+                            <svg class="w-5 h-5 text-accent-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+                            TALLY PRIME
+                        </span>
+                        <span class="text-sm font-bold text-slate-500 flex items-center gap-1.5">
+                            <svg class="w-5 h-5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3M3 12c0 1.657 3.134 3 7 3s7-1.343 7-3M3 12c0-1.657 3.134-3 7-3s7 1.343 7 3M3 6c0 1.657 3.134 3 7 3s7-1.343 7-3M3 6c0-1.657 3.134-3 7-3s7 1.343 7 3"/></svg>
+                            POSTGRESQL
+                        </span>
+                        <span class="text-sm font-bold text-slate-500 flex items-center gap-1.5">
+                            <svg class="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+                            GROQ AI
+                        </span>
+                    </div>
                 </div>
             </div>
-            <div class="relative">
-                <div class="float relative z-10 bg-white p-4 rounded-[2rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-100">
-                    <img src="https://images.unsplash.com/photo-1551288049-bbbda546697a?auto=format&fit=crop&q=80&w=800" alt="Dashboard Preview" class="rounded-[1.5rem] shadow-inner">
+
+            <!-- Hero Graphics / Visual Mockups -->
+            <div class="lg:col-span-5 relative mt-12 lg:mt-0">
+                <div class="relative z-10 p-4 bg-white/40 backdrop-blur-md rounded-[2.5rem] shadow-[0_32px_80px_rgba(15,23,42,0.18)] border border-white/50 float-1">
+                    <div class="bg-navy-950 rounded-[1.8rem] overflow-hidden border border-navy-800 shadow-2xl p-2">
+                        <div class="h-6 bg-navy-900/90 flex items-center gap-1.5 px-4 border-b border-navy-800/80 rounded-t-[1.4rem]">
+                            <span class="w-2 h-2 rounded-full bg-red-500/80"></span>
+                            <span class="w-2 h-2 rounded-full bg-yellow-500/80"></span>
+                            <span class="w-2 h-2 rounded-full bg-green-500/80"></span>
+                            <span class="text-[10px] text-slate-400 font-bold tracking-wider ml-2">TALLYERP NEXUS CORE v1.0</span>
+                        </div>
+                        <img src="{% static 'finance_dashboard.png' %}" alt="TallyERP Nexus Dashboard" class="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-all duration-500 rounded-b-[1.2rem] shadow-inner">
+                    </div>
                 </div>
-                <!-- Redesigned Badge -->
-                <div class="absolute -bottom-6 -left-12 bg-white/90 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(79,70,229,0.25)] border border-white/40 z-20 hidden md:flex items-center gap-4 group hover:scale-105 transition-transform duration-500">
-                    <div class="w-14 h-14 bg-gradient-to-br from-brand-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+
+                <!-- Floating Interactive Widget 1: Voucher Sync Status -->
+                <div class="absolute top-[-30px] right-[-20px] z-20 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 float-2">
+                    <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-600 animate-pulse" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
                     </div>
                     <div>
-                        <div class="text-3xl font-black bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">99.9%</div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tax Sync Integrity</div>
+                        <p class="text-xs font-bold text-slate-400">Sync Pipeline</p>
+                        <p class="text-sm font-extrabold text-slate-900">Vouchers Synced</p>
+                    </div>
+                </div>
+
+                <!-- Floating Interactive Widget 2: AI active -->
+                <div class="absolute bottom-[-20px] right-[40px] z-20 bg-gradient-to-br from-navy-900 to-navy-950 p-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3 float-1">
+                    <div class="w-10 h-10 bg-accent-500/10 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-accent-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.096L15 15l-5.187.904z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nexus AI</p>
+                        <p class="text-xs font-semibold text-white">Anomalies Detected: 0</p>
+                    </div>
+                </div>
+
+                <!-- Floating Interactive Widget 3: Approval Notifications -->
+                <div class="absolute bottom-[40px] left-[-30px] z-20 bg-white/95 backdrop-blur-xl p-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 float-2">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <p class="text-xs font-extrabold text-slate-900">Pending Approvals</p>
+                            <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-400">Requires Manager Sign-off</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ═══════════ FEATURES ═══════════ -->
-    <section id="features" class="py-24 px-6 bg-white">
+    <!-- ═══════════ SECTION 2: WHY MORE THAN TALLY ═══════════ -->
+    <section id="why-nexus" class="py-28 px-6 bg-white border-y border-slate-100">
         <div class="max-w-7xl mx-auto space-y-16">
-            <div class="text-center space-y-4">
-                <h2 class="text-4xl font-extrabold text-slate-900">Why Modern Businesses Choose Us</h2>
-                <p class="text-slate-500 max-w-2xl mx-auto">Everything you need to manage your enterprise finances with clinical precision.</p>
+            <div class="text-center space-y-4 reveal-element">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-accent-600 bg-accent-50 px-3.5 py-1 rounded-full border border-accent-100">Functional Gap Analysis</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900">Why Businesses Need More Than Traditional Tally</h2>
+                <p class="text-slate-500 max-w-2xl mx-auto text-base">Tally is powerful for accounting, but scaling enterprises require centralized governance, structural workflows, and web accessibility to maintain regulatory alignment.</p>
             </div>
-            
-            <div class="grid md:grid-cols-3 gap-8">
+
+            <div class="grid lg:grid-cols-12 gap-12 items-stretch reveal-element">
+                <!-- Tally Capabilities -->
+                <div class="lg:col-span-5 bg-slate-50 rounded-3xl p-8 border border-slate-200/60 flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-extrabold text-navy-900 mb-2">Traditional Tally Prime</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-6">Excellent single-entry core, offline book maintenance, and tax computation. Built specifically as ledger tracking software but lacks multi-location access, structured approvals, and enterprise audit tracking.</p>
+                    </div>
+                    <ul class="space-y-3.5 border-t border-slate-200 pt-6 text-sm text-slate-600 font-semibold">
+                        <li class="flex items-center gap-2.5 text-slate-400">
+                            <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                            No integrated web access (Offline desktop application)
+                        </li>
+                        <li class="flex items-center gap-2.5 text-slate-400">
+                            <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                            No native maker-checker or multi-level approvals
+                        </li>
+                        <li class="flex items-center gap-2.5 text-slate-400">
+                            <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                            Hard to implement AI-driven fraud anomaly reports
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Nexus Solution -->
+                <div class="lg:col-span-7 bg-navy-900 rounded-3xl p-8 border border-slate-800 text-white flex flex-col justify-between relative overflow-hidden">
+                    <div class="absolute top-[-50px] right-[-50px] w-64 h-64 bg-accent-500/10 rounded-full blur-[100px]"></div>
+                    <div>
+                        <div class="w-12 h-12 bg-accent-500/10 text-accent-400 rounded-xl flex items-center justify-center mb-6 border border-accent-500/20 shadow-md">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-extrabold text-white mb-2">TallyERP Nexus Engine</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed mb-6">Injects structural compliance, modern API controls, role accessibility, and AI financial models into your existing Tally system, bringing enterprise grade performance without replacing your beloved database.</p>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4 border-t border-slate-800 pt-6 text-sm text-slate-300 font-semibold">
+                        <div class="space-y-3.5">
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-accent-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                Maker-checker approvals
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-accent-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                AI Financial Analytics
+                            </li>
+                        </div>
+                        <div class="space-y-3.5">
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-accent-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                Real-time sync logs
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-accent-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                Multi-location web UI
+                            </li>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ SECTION 3: FEATURES SECTION ═══════════ -->
+    <section id="features" class="py-28 px-6 bg-slate-50">
+        <div class="max-w-7xl mx-auto space-y-16">
+            <div class="text-center space-y-4 reveal-element">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-accent-600 bg-accent-50 px-3.5 py-1 rounded-full border border-accent-100">ENGINEERING SUITE</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900">Premium ERP Features Redefined</h2>
+                <p class="text-slate-500 max-w-2xl mx-auto text-base">Explore the standard-setting capabilities of TallyERP Nexus, designed to bring transactional agility to modern enterprises.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 reveal-element">
                 <!-- Feature 1 -->
-                <div class="p-8 rounded-3xl border border-slate-100 hover:border-brand-200 hover:shadow-2xl hover:shadow-brand-100/50 transition-all group">
-                    <div class="w-14 h-14 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-brand-600 group-hover:text-white transition-colors">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <div class="p-8 rounded-3xl bg-white border border-slate-100 hover:border-accent-200 hover:shadow-[0_24px_48px_-12px_rgba(14,165,233,0.1)] transition-all duration-300 group relative card-hover-box">
+                    <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-accent-400 to-indigo-500 rounded-t-3xl scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                    <div class="w-14 h-14 bg-accent-50 text-accent-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-accent-600 group-hover:text-white transition-all">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Tally-Style Invoicing</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed">Generate professional, GST-compliant invoices with HSN codes and automatic tax breakdowns. Ready for print and audit.</p>
+                    <h3 class="text-xl font-bold text-navy-900 mb-3 text-slide-up">Intelligent Voucher Management</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Create, process, and track sales, purchase, receipt, and payment vouchers. Automated GST breakdown ensures flawless accounting data entry.</p>
                 </div>
+
                 <!-- Feature 2 -->
-                <div class="p-8 rounded-3xl border border-slate-100 hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100/50 transition-all group">
-                    <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <div class="p-8 rounded-3xl bg-white border border-slate-100 hover:border-indigo-200 hover:shadow-[0_24px_48px_-12px_rgba(99,102,241,0.1)] transition-all duration-300 group relative card-hover-box">
+                    <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-t-3xl scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                    <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Approval Workflow</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed">Enforce strict financial controls. Every voucher created by an accountant must be approved by a manager before it's finalized.</p>
+                    <h3 class="text-xl font-bold text-navy-900 mb-3 text-slide-up">Multi-Level Approval Workflow</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Enforce dynamic approvals (maker-checker pattern). Vouchers drafted by accountants require multi-level managerial authorization.</p>
                 </div>
+
                 <!-- Feature 3 -->
-                <div class="p-8 rounded-3xl border border-slate-100 hover:border-emerald-200 hover:shadow-2xl hover:shadow-emerald-100/50 transition-all group">
-                    <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <div class="p-8 rounded-3xl bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-[0_24px_48px_-12px_rgba(16,185,129,0.1)] transition-all duration-300 group relative card-hover-box">
+                    <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-t-3xl scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                    <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Real-time Tally Sync</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed">Bidirectional sync with Tally Prime. Keep your ledgers, stock items, and vouchers synchronized across all platforms.</p>
+                    <h3 class="text-xl font-bold text-navy-900 mb-3 text-slide-up">Real-Time Tally Sync</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Ensure bidirectionally perfect ledger, voucher and inventory replication with Tally Prime databases. Built on a zero-loss transactional engine.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="p-8 rounded-3xl bg-white border border-slate-100 hover:border-purple-200 hover:shadow-[0_24px_48px_-12px_rgba(139,92,246,0.1)] transition-all duration-300 group relative card-hover-box">
+                    <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-purple-400 to-fuchsia-500 rounded-t-3xl scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                    <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy-900 mb-3 text-slide-up">AI Financial Assistant</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Chat directly with an intelligent AI model connected to your local and Tally ledger data. Find anomalies, draft analytics, and generate reports.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="p-8 rounded-3xl bg-white border border-slate-100 hover:border-sky-200 hover:shadow-[0_24px_48px_-12px_rgba(56,189,248,0.1)] transition-all duration-300 group relative card-hover-box">
+                    <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-sky-400 to-blue-500 rounded-t-3xl scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                    <div class="w-14 h-14 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-sky-600 group-hover:text-white transition-all">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy-900 mb-3 text-slide-up">Role-Based Access Control</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Establish robust organizational hierarchy. Segregate functional views and permissions between administrators, managers, and accountants.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="p-8 rounded-3xl bg-white border border-slate-100 hover:border-red-200 hover:shadow-[0_24px_48px_-12px_rgba(239,68,68,0.1)] transition-all duration-300 group relative card-hover-box">
+                    <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-red-400 to-orange-500 rounded-t-3xl scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                    <div class="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-red-600 group-hover:text-white transition-all">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy-900 mb-3 text-slide-up">Audit & Compliance Tracking</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Maintain comprehensive audit trails of every synchronization log, approval event, and manual master adjustments for corporate audits.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ═══════════ ROLES SECTION ═══════════ -->
-    <section class="py-24 px-6 bg-slate-50">
-        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
-            <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-4">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                        <div class="font-bold text-brand-600">Admin</div>
-                        <p class="text-xs text-slate-400">Total system control & users</p>
-                    </div>
-                    <div class="bg-brand-600 p-6 rounded-3xl shadow-xl text-white">
-                        <div class="font-bold">Manager</div>
-                        <p class="text-xs opacity-80">Approval authority & Reports</p>
-                    </div>
-                </div>
-                <div class="space-y-4 pt-12">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                        <div class="font-bold text-slate-900">Accountant</div>
-                        <p class="text-xs text-slate-400">Voucher entry & Invoicing</p>
-                    </div>
-                </div>
+    <!-- ═══════════ SECTION 4: SYSTEM WORKFLOW ═══════════ -->
+    <section id="workflow" class="py-28 px-6 bg-white relative overflow-hidden">
+        <div class="max-w-7xl mx-auto space-y-16">
+            <div class="text-center space-y-4 reveal-element">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-accent-600 bg-accent-50 px-3.5 py-1 rounded-full border border-accent-100">Synchronicity Pipeline</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900">Full-Duplex Operational Flow</h2>
+                <p class="text-slate-500 max-w-2xl mx-auto text-base">Trace how transactions originate on the Nexus web interface, flow through security nodes, and synchronize successfully into Tally Prime ledger books.</p>
             </div>
-            <div class="space-y-6">
-                <h2 class="text-4xl font-extrabold text-slate-900">Role-Based Financial Control</h2>
-                <p class="text-slate-600">Our RBAC (Role Based Access Control) system ensures that sensitive financial data is only accessible to those who need it. A perfect Maker-Checker system for your business.</p>
-                <ul class="space-y-4">
-                    <li class="flex items-center gap-3 text-slate-700 font-medium">
-                        <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        Secure Login for Admin, Manager, and Accountant
-                    </li>
-                    <li class="flex items-center gap-3 text-slate-700 font-medium">
-                        <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        Audit Trail for all approvals
-                    </li>
-                    <li class="flex items-center gap-3 text-slate-700 font-medium">
-                        <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        Restricted access to financial reports
-                    </li>
-                </ul>
+
+            <!-- Visual Workflow Diagram (Responsive Flex/Grid Cards) -->
+            <div class="relative grid md:grid-cols-5 gap-8 reveal-element">
+                
+                <!-- Connector Line on Large Screens -->
+                <div class="absolute top-[45px] left-[10%] right-[10%] h-[3px] bg-gradient-to-r from-accent-500 via-indigo-500 to-accent-600 hidden md:block -z-10 opacity-35"></div>
+
+                <!-- Step 1 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm hover:scale-105 hover:bg-white transition-all duration-300 relative group">
+                    <div class="w-12 h-12 bg-white text-accent-600 rounded-full border border-slate-200 flex items-center justify-center font-bold text-lg shadow group-hover:bg-accent-600 group-hover:text-white transition-all duration-300">1</div>
+                    <h4 class="font-extrabold text-navy-900 text-sm">Secure Authentication</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Role-specific multi-user dashboard entry.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm hover:scale-105 hover:bg-white transition-all duration-300 relative group">
+                    <div class="w-12 h-12 bg-white text-accent-600 rounded-full border border-slate-200 flex items-center justify-center font-bold text-lg shadow group-hover:bg-accent-600 group-hover:text-white transition-all duration-300">2</div>
+                    <h4 class="font-extrabold text-navy-900 text-sm">Voucher Creation</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Double-entry accounting invoice drafted.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm hover:scale-105 hover:bg-white transition-all duration-300 relative group">
+                    <div class="w-12 h-12 bg-white text-accent-600 rounded-full border border-slate-200 flex items-center justify-center font-bold text-lg shadow group-hover:bg-accent-600 group-hover:text-white transition-all duration-300">3</div>
+                    <h4 class="font-extrabold text-navy-900 text-sm">Approval Workflow</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Manager signs off on transaction legality.</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm hover:scale-105 hover:bg-white transition-all duration-300 relative group">
+                    <div class="w-12 h-12 bg-white text-accent-600 rounded-full border border-slate-200 flex items-center justify-center font-bold text-lg shadow group-hover:bg-accent-600 group-hover:text-white transition-all duration-300">4</div>
+                    <h4 class="font-extrabold text-navy-900 text-sm">Tally Synchronization</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Lossless XML transfer to local Tally.</p>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="bg-slate-50 border border-slate-200/60 p-6 rounded-2xl flex flex-col items-center text-center space-y-4 shadow-sm hover:scale-105 hover:bg-white transition-all duration-300 relative group">
+                    <div class="w-12 h-12 bg-white text-accent-600 rounded-full border border-slate-200 flex items-center justify-center font-bold text-lg shadow group-hover:bg-accent-600 group-hover:text-white transition-all duration-300">5</div>
+                    <h4 class="font-extrabold text-navy-900 text-sm">Reports & AI</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Audited balance sheets & intelligent analytics.</p>
+                </div>
+
             </div>
         </div>
     </section>
 
-    <!-- ═══════════ CTA ═══════════ -->
-    <section class="py-20 px-6">
-        <div class="max-w-5xl mx-auto bg-slate-900 rounded-[3rem] p-12 lg:p-20 text-center space-y-8 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-brand-500 rounded-full blur-[100px] opacity-20"></div>
-            <h2 class="text-4xl lg:text-5xl font-extrabold text-white">Ready to govern your finances?</h2>
-            <p class="text-slate-400 text-lg max-w-xl mx-auto">Get started today with the most advanced ERP system designed for Tally enthusiasts.</p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="{% url 'login' %}" class="w-full sm:w-auto px-10 py-4 bg-white text-slate-900 rounded-2xl font-bold hover:bg-brand-50 transition-all shadow-xl">
+    <!-- ═══════════ SECTION 5: RBAC SECTION ═══════════ -->
+    <section id="governance" class="py-28 px-6 bg-slate-50 border-y border-slate-100">
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+            
+            <!-- Left Side: Interactive Mock Cards -->
+            <div class="space-y-6 reveal-element">
+                <!-- Admin Card -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-start gap-4 hover:shadow-md transition-all duration-300">
+                    <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 font-bold">A</div>
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-navy-900">Administrator</span>
+                            <span class="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 uppercase tracking-widest">Master Key</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Total database control, ledger company setup, user authorization, auditing protocols & sync engine configurations.</p>
+                    </div>
+                </div>
+
+                <!-- Manager Card -->
+                <div class="bg-navy-900 p-6 rounded-3xl shadow-xl border border-navy-800 flex items-start gap-4 text-white hover:scale-102 transition-transform duration-300">
+                    <div class="w-10 h-10 bg-accent-500/20 text-accent-400 rounded-xl flex items-center justify-center flex-shrink-0 font-bold">M</div>
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white">Financial Manager</span>
+                            <span class="text-[10px] font-extrabold px-2 py-0.5 bg-accent-500/15 text-accent-400 rounded-md border border-accent-500/30 uppercase tracking-widest">Sign-Off</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Enforces structural maker-checker workflows. Authority to approve or reject vouchers, access financial analytics and AI anomaly logs.</p>
+                    </div>
+                </div>
+
+                <!-- Accountant Card -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-start gap-4 hover:shadow-md transition-all duration-300">
+                    <div class="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center flex-shrink-0 font-bold">S</div>
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-navy-900">Data Accountant</span>
+                            <span class="text-[10px] font-extrabold px-2 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-200 uppercase tracking-widest">Operator</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Drafts voucher entries, records ledger groupings, initiates invoice structures. No direct Tally synchronization rights until manager verification.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Content -->
+            <div class="space-y-6 reveal-element">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-accent-600 bg-accent-50 px-3.5 py-1 rounded-full border border-accent-100">GOVERNANCE PARADIGM</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900 leading-tight">Enterprise Grade Financial Governance</h2>
+                <p class="text-slate-600 leading-relaxed text-base">Protect corporate integrity by segregating accounting functions. Our Role-Based Access Control (RBAC) acts as an active firewall against ledger manipulation and tax inaccuracies.</p>
+                
+                <div class="grid sm:grid-cols-2 gap-4 pt-4 text-sm text-slate-700 font-semibold">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        Secure Access controls
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        Detailed Audit logs
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        Approval authority
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        Restricted reporting access
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══════════ SECTION 6: PROBLEM / SOLUTION SECTION ═══════════ -->
+    <section class="py-28 px-6 bg-white">
+        <div class="max-w-7xl mx-auto space-y-16">
+            <div class="text-center space-y-4 reveal-element">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-accent-600 bg-accent-50 px-3.5 py-1 rounded-full border border-accent-100">Operational Shifts</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900">Overcoming Traditional Accounting Inertia</h2>
+                <p class="text-slate-500 max-w-2xl mx-auto text-base">Moving from legacy manual frameworks to automated, securely audited real-time digital balance controls.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12 items-stretch reveal-element">
+                <!-- Problems -->
+                <div class="bg-red-50/50 rounded-3xl p-8 border border-red-100/60 space-y-6">
+                    <h3 class="text-xl font-extrabold text-red-950 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Traditional Accounting Hurdles
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex gap-4">
+                            <span class="w-2 h-2 rounded-full bg-red-400 mt-2 flex-shrink-0"></span>
+                            <p class="text-sm text-red-900/80"><strong class="text-red-950 block">Manual physical approvals</strong> Vouchers passed around physical offices or via email chains lead to lost documents and processing lags.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <span class="w-2 h-2 rounded-full bg-red-400 mt-2 flex-shrink-0"></span>
+                            <p class="text-sm text-red-900/80"><strong class="text-red-950 block">Delayed statutory reports</strong> Accounting teams must compile branch ledgers manually at every cycle end, causing delayed filing.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <span class="w-2 h-2 rounded-full bg-red-400 mt-2 flex-shrink-0"></span>
+                            <p class="text-sm text-red-900/80"><strong class="text-red-950 block">Absent transactional audit trails</strong> Modifications to desktop ledger systems occur without tracking, causing compliance friction.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Solutions -->
+                <div class="bg-emerald-50/50 rounded-3xl p-8 border border-emerald-100/60 space-y-6">
+                    <h3 class="text-xl font-extrabold text-emerald-950 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        TallyERP Nexus Solutions
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex gap-4">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></span>
+                            <p class="text-sm text-emerald-900/80"><strong class="text-emerald-950 block">Automated digital approvals</strong> Direct web-based maker-checker interface ensures secure multi-user authorization tracks seamlessly.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></span>
+                            <p class="text-sm text-emerald-900/80"><strong class="text-emerald-950 block">Real-time centralized reports</strong> Live data sync computes instantly, projecting real-time active profit-and-loss balances globally.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></span>
+                            <p class="text-sm text-emerald-900/80"><strong class="text-emerald-950 block">Comprehensive event logging</strong> All voucher additions, edits, and Tally transfers generate persistent sync status events.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ SECTION 7: SYSTEM ARCHITECTURE PREVIEW ═══════════ -->
+    <section id="architecture" class="py-28 px-6 bg-slate-900 border-t border-slate-800 text-white relative overflow-hidden">
+        <div class="absolute inset-0 -z-10 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-10"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-accent-500/10 rounded-full blur-[120px] -z-10"></div>
+
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-12 gap-16 items-center">
+            <!-- Left Side: Content -->
+            <div class="lg:col-span-5 space-y-6 reveal-element">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-accent-400 bg-accent-500/10 px-3.5 py-1 rounded-full border border-accent-500/20">SYSTEM SCHEMATICS</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white leading-tight">Hybrid Intranet Architecture</h2>
+                <p class="text-slate-400 text-sm sm:text-base leading-relaxed">Discover our secure hybrid framework. TallyERP Nexus uses clean Django API gateways and XML parser client systems to bridge secure web cloud networks with offline local Tally installations.</p>
+                
+                <div class="pt-4">
+                    <a href="{% url 'about-project' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-accent-600 text-white rounded-xl text-sm font-bold hover:bg-accent-700 transition-all shadow-md shadow-accent-500/15">
+                        View Full Architecture
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Side: Clean Visual Block -->
+            <div class="lg:col-span-7 reveal-element">
+                <div class="p-6 bg-slate-950 rounded-2xl border border-slate-800/80 shadow-2xl relative">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500/70"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-500/70"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-500/70"></span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Nexus Integration Protocol</span>
+                    </div>
+
+                    <!-- Clean Schema Representation -->
+                    <div class="space-y-6 text-xs sm:text-sm font-mono text-slate-300">
+                        <div class="flex items-center justify-between p-3.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                            <span class="text-accent-400 font-bold">Cloud Web Console</span>
+                            <span class="text-slate-500">React/Tailwind UI</span>
+                            <span class="text-emerald-400 font-bold">HTTPS Post</span>
+                        </div>
+                        <div class="flex justify-center">
+                            <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"/>
+                            </svg>
+                        </div>
+                        <div class="flex items-center justify-between p-3.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                            <span class="text-indigo-400 font-bold">Django ERP Engine</span>
+                            <span class="text-slate-500">PostgreSQL (Supabase)</span>
+                            <span class="text-emerald-400 font-bold">XML Serialization</span>
+                        </div>
+                        <div class="flex justify-center">
+                            <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"/>
+                            </svg>
+                        </div>
+                        <div class="flex items-center justify-between p-3.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                            <span class="text-purple-400 font-bold">Tally Prime Client</span>
+                            <span class="text-slate-500">Localhost Port 9000</span>
+                            <span class="text-emerald-400 font-bold">Bi-directional Sync</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ SECTION 8: CTA SECTION ═══════════ -->
+    <section class="py-24 px-6 bg-slate-50 relative overflow-hidden">
+        <div class="absolute inset-0 -z-10 overflow-hidden">
+            <div class="glow-bg absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-indigo-200/20 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div class="max-w-5xl mx-auto bg-gradient-to-br from-navy-900 to-navy-950 rounded-[2.5rem] p-10 sm:p-16 text-center space-y-8 border border-slate-800 shadow-2xl relative overflow-hidden reveal-element">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-accent-500 rounded-full blur-[100px] opacity-10"></div>
+            
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-1 bg-accent-500/10 text-accent-400 rounded-full text-xs font-extrabold tracking-widest border border-accent-500/20 uppercase">Scale Your Integration</span>
+            <h2 class="text-3xl sm:text-4.5xl font-extrabold text-white tracking-tight">Ready to Modernize Your Tally Workflow?</h2>
+            <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">Transform traditional accounting operations into a secure, intelligent, approval-driven ERP experience.</p>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a href="{% url 'login' %}" class="w-full sm:w-auto px-10 py-4 bg-accent-600 text-white rounded-2xl font-bold hover:bg-accent-700 transition-all shadow-lg shadow-accent-500/20">
                     Launch Dashboard
                 </a>
-                <a href="mailto:admin@erp.com" class="w-full sm:w-auto px-10 py-4 border border-slate-700 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all">
-                    Contact Sales
+                <a href="{% url 'about-project' %}" class="w-full sm:w-auto px-10 py-4 border border-slate-700 text-slate-300 rounded-2xl font-bold hover:bg-slate-800 transition-all">
+                    View Documentation
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- ═══════════ FOOTER ═══════════ -->
-    <footer class="py-12 border-t border-slate-200">
-        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+    <!-- ═══════════ SECTION 9: FOOTER ═══════════ -->
+    <footer class="py-16 bg-white border-t border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-10">
+            
+            <!-- Branding Column -->
+            <div class="md:col-span-1 space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 bg-navy-900 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 2 12 2m0 20c-2.485 0-4.5-4.03-4.5-9S9.515 2 12 2m0 0a8.997 8.997 0 017.843 4.582M12 2a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-.778.099-1.533.284-2.253"/>
+                        </svg>
+                    </div>
+                    <span class="font-extrabold text-slate-900">TallyERP Nexus</span>
                 </div>
-                <span class="font-bold text-slate-900">NextGen ERP</span>
+                <p class="text-xs text-slate-400 leading-relaxed">Connecting modern cloud workflows with secure offline desktop financial ledgers flawlessly.</p>
             </div>
-            <p class="text-sm text-slate-400">© 2026 ERP Project. Built for Excellence.</p>
+
+            <!-- Links Column 1: System -->
+            <div class="space-y-4">
+                <h4 class="text-xs font-extrabold uppercase tracking-widest text-slate-400">System Gateway</h4>
+                <ul class="space-y-2.5 text-sm font-semibold text-slate-600">
+                    <li><a href="{% url 'login' %}" class="hover:text-accent-600 transition-colors">Access Dashboard</a></li>
+                    <li><a href="{% url 'about-project' %}" class="hover:text-accent-600 transition-colors">Architecture Overview</a></li>
+                </ul>
+            </div>
+
+            <!-- Links Column 2: Docs & Reference -->
+            <div class="space-y-4">
+                <h4 class="text-xs font-extrabold uppercase tracking-widest text-slate-400">Resource Registry</h4>
+                <ul class="space-y-2.5 text-sm font-semibold text-slate-600">
+                    <li><a href="{% url 'about-project' %}" class="hover:text-accent-600 transition-colors">System Schematics</a></li>
+                    <li><a href="#" class="hover:text-accent-600 transition-colors">XML Request Schema</a></li>
+                    <li><a href="#" class="hover:text-accent-600 transition-colors">API Reference</a></li>
+                </ul>
+            </div>
+
+            <!-- Links Column 3: Policy & Legal -->
+            <div class="space-y-4">
+                <h4 class="text-xs font-extrabold uppercase tracking-widest text-slate-400">Governance & Trust</h4>
+                <ul class="space-y-2.5 text-sm font-semibold text-slate-600">
+                    <li><a href="#" class="hover:text-accent-600 transition-colors">Security Policy</a></li>
+                    <li><a href="#" class="hover:text-accent-600 transition-colors">Data Privacy Code</a></li>
+                    <li><a href="#" class="hover:text-accent-600 transition-colors">Terms of Alliance</a></li>
+                </ul>
+            </div>
+
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-400 font-semibold">
+            <p>© 2026 TallyERP Nexus. Built for Excellence in Financial Governance.</p>
             <div class="flex gap-6">
-                <a href="#" class="text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest">Privacy</a>
-                <a href="#" class="text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest">Terms</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">GitHub Repository</a>
+                <a href="mailto:support@nexus.erp.com" class="hover:text-slate-900 transition-colors">Contact Engineering</a>
             </div>
         </div>
     </footer>
+
+    <!-- Scroll Reveal JavaScript Interaction -->
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            const innerNav = nav.querySelector('div');
+            if (window.scrollY > 20) {
+                nav.classList.add('py-2');
+                nav.classList.remove('py-4');
+                innerNav.classList.remove('glass');
+                innerNav.classList.add('bg-white/95', 'shadow-md', 'border-slate-200');
+            } else {
+                nav.classList.add('py-4');
+                nav.classList.remove('py-2');
+                innerNav.classList.add('glass');
+                innerNav.classList.remove('bg-white/95', 'shadow-md', 'border-slate-200');
+            }
+        });
+
+        // Intersection Observer for scroll-reveal animations
+        const revealCallback = (entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        };
+
+        const revealObserver = new IntersectionObserver(revealCallback, {
+            root: null,
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        document.querySelectorAll('.reveal-element').forEach(el => {
+            revealObserver.observe(el);
+        });
+
+        // Initialize elements in viewport initially
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.reveal-element').forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top < window.innerHeight) {
+                    el.classList.add('active');
+                }
+            });
+        });
+    </script>
 
 </body>
 </html>
