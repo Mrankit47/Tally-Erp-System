@@ -132,7 +132,7 @@ Follow these strict output guidelines:
         ]
 
         logger.debug("Requesting insights summary from Groq.")
-        response = client.chat.completions.create(
+        response = client.chat.completions.create(  # type: ignore
             model="llama-3.1-8b-instant",  # Stable model with rapid response times
             messages=messages,
             temperature=0.2,

@@ -75,7 +75,7 @@ You MUST return your output in the following STRICT JSON layout:
 
         logger.debug("Requesting structured invoice parse from Groq llama-3.1-8b-instant")
         
-        response = client.chat.completions.create(
+        response = client.chat.completions.create(  # type: ignore
             model="llama-3.1-8b-instant",
             messages=messages,
             temperature=0.1,  # Factual, highly deterministic parsing

@@ -24,8 +24,8 @@ class TallyClient:
     """
 
     def __init__(self, url=None, timeout=None):
-        self.url = url or settings.TALLY_URL
-        self.timeout = timeout or settings.TALLY_TIMEOUT
+        self.url = str(url or getattr(settings, 'TALLY_URL', 'http://localhost:9000'))
+        self.timeout = float(timeout or getattr(settings, 'TALLY_TIMEOUT', 15))
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/xml',
@@ -46,7 +46,7 @@ class TallyClient:
         Raises:
             TallyClientError: If all retries fail.
         """
-        max_retries = settings.TALLY_RETRY_COUNT
+        max_retries = int(getattr(settings, 'TALLY_RETRY_COUNT', 3))
         
         logger.debug(f"Tally Request XML:\n{xml_payload}")
 

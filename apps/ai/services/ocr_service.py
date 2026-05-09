@@ -40,7 +40,7 @@ def extract_text_from_file(file_obj, filename: str) -> str:
         elif ext in ['.png', '.jpg', '.jpeg', '.webp']:
             logger.info(f"Extracting OCR text from image: {filename}")
             img = Image.open(file_obj)
-            text = pytesseract.image_to_string(img)
+            text = str(pytesseract.image_to_string(img))
         else:
             raise ValueError(f"Unsupported file extension: {ext}")
 
