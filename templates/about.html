@@ -1,104 +1,203 @@
-{% extends "base.html" %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Documentation — TallyERP Nexus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'sans': ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50:  '#F8FAFC',
+                            100: '#E2E8F0',
+                            200: '#CBD5E1',
+                            300: '#94A3B8',
+                            400: '#60A5FA',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            800: '#1E3A8A',
+                            900: '#1E293B',
+                            950: '#0F172A',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeInUp 0.6s ease-out forwards; }
+    </style>
+</head>
+<body class="font-sans text-slate-900 min-h-screen">
 
-{% block title %}About Project{% endblock %}
-{% block page_title %}System Architecture{% endblock %}
-
-{% block content %}
-<div class="max-w-4xl mx-auto space-y-8 animate-fade-in">
-
-    <!-- Header -->
-    <div>
-        <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Enterprise Resource Planning System</h2>
-        <p class="mt-2 text-lg text-gray-500">A robust, full-duplex accounting integration bridging a modern Django backend with Tally Prime.</p>
-    </div>
-
-    <!-- Tech Stack -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-5 border-b border-gray-50">
-            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                Technology Stack
-            </h3>
+    <!-- Simple Nav -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="{% url 'landing' %}" class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg overflow-hidden shadow-sm border border-brand-100 flex items-center justify-center bg-white">
+                    <img src="{% static 'nexus_logo.png' %}" alt="Logo" class="w-full h-full object-contain">
+                </div>
+                <span class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">TallyERP <span class="text-brand-600 font-semibold bg-sky-50 px-2 py-0.5 rounded-lg text-xs border border-sky-100">Nexus</span></span>
+            </a>
+            <a href="{% url 'landing' %}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Back to Home
+            </a>
         </div>
-        <div class="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                <p class="text-sm font-bold text-gray-900">Backend</p>
-                <p class="text-xs text-gray-500 mt-1">Django 5.2<br>Python 3.11</p>
-            </div>
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                <p class="text-sm font-bold text-gray-900">Database</p>
-                <p class="text-xs text-gray-500 mt-1">PostgreSQL<br>(via Psycopg2)</p>
-            </div>
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                <p class="text-sm font-bold text-gray-900">Frontend</p>
-                <p class="text-xs text-gray-500 mt-1">Django Templates<br>Tailwind CSS<br>Chart.js</p>
-            </div>
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                <p class="text-sm font-bold text-gray-900">Integration</p>
-                <p class="text-xs text-gray-500 mt-1">Tally Prime XML<br>Requests API</p>
-            </div>
-        </div>
-    </div>
+    </nav>
 
-    <!-- Architecture Diagram -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-delay-1">
-        <div class="px-6 py-5 border-b border-gray-50">
-            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                System Architecture
-            </h3>
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-12 space-y-8 animate-fade-in">
+        
+        <!-- Header -->
+        <div class="text-center md:text-left">
+            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Project Documentation</h2>
+            <p class="mt-2 text-lg text-gray-500">A comprehensive enterprise financial control platform integrating seamlessly with Tally Prime.</p>
         </div>
-        <div class="p-6 overflow-x-auto bg-gray-900 text-gray-100 font-mono text-xs sm:text-sm rounded-b-2xl leading-relaxed">
-            <pre>
-[User Interface]                     [Django Backend]                        [Tally ERP]
-  Tailwind UI    === HTTP POST ===>   Action Views     === Intranet ===>     XML Server
- (Dashboard)       (AJAX/JSON)       (trigger_sync)                        (Port: 9000)
-      |                                    |                                     |
-      |                                    | (Service Layer)                     |
-      |                                    v                                     |
-      |                          +--------------------+                          |
-      |                          | TallySyncService   |                          |
-      |                          | - XML Generator    | ==== XML Request ===>    |
-      |                          | - Retry Client     | <=== XML Response ===    |
-      |                          | - XML Parser       |                          |
-      |                          +---------+----------+                          |
-      |                                    |                                     |
-      |                                    v                                     |
-      |                          [Database Models]                               |
-      +----- Query / View -------  - Voucher/Entry                               |
-                                   - Ledger/Group                                |
-                                   - SyncLog (Audit)                             |
-            </pre>
-        </div>
-    </div>
 
-    <!-- Data Flow -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-delay-2">
-        <div class="px-6 py-5 border-b border-gray-50">
-            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                Data Flow & Integrity
-            </h3>
-        </div>
-        <div class="p-6 space-y-6">
-            <div>
-                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">1. Transactional Validation</h4>
-                <p class="mt-1 text-sm text-gray-600">Before a voucher is pushed to Tally, the service checks strict invariants: It ensures the double-entry accounting matches (`Sum(Debit) == Sum(Credit)`), verifying structural balance via database model constraints.</p>
+        <!-- Project Overview -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-50 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Project Overview
+                </h3>
             </div>
-            <div>
-                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">2. Tally XML Compliance</h4>
-                <p class="mt-1 text-sm text-gray-600">Data is serialized into Tally's expected XML `<ENVELOPE>` structure using Python's `xml.etree.ElementTree`. The generator strictly handles `ISDEEMEDPOSITIVE` logic (Yes for Dr., No for Cr.) and deduces the `PARTYLEDGERNAME` based on transaction side.</p>
-            </div>
-            <div>
-                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">3. Idempotent Synchronization</h4>
-                <p class="mt-1 text-sm text-gray-600">The system inherently avoids duplicating records. Pushes are guarded against vouchers that already bear a `tally_id`. The "Retry Failed" bulk syncer uniquely operates only on `PENDING` or `FAILED` vouchers.</p>
-            </div>
-            <div>
-                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">4. Comprehensive Audit Trails</h4>
-                <p class="mt-1 text-sm text-gray-600">Every external network interaction generates a `SyncLog` record containing the exact timestamp, status, and raw Tally XML response message (`LINEERROR`) guaranteeing flawless offline debugging.</p>
+            <div class="p-6">
+                <p class="text-gray-600 leading-relaxed text-sm">
+                    <strong>Tally ERP Nexus</strong> is an advanced, web-based intelligence platform designed to work alongside existing Tally ERP software. It introduces strict role governance, multi-tier approvals, and intelligent insights to business accounting. Instead of replacing your trusted ledger system, it acts as a secure, remote-accessible layer that synchronizes transactions losslessly into Tally Prime. This allows modern organizations to operate efficiently without compromising on their core financial infrastructure.
+                </p>
             </div>
         </div>
-    </div>
 
-</div>
-{% endblock %}
+        <!-- Advantages & Uses -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-50 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    Uses & Business Advantages
+                </h3>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-900 mb-1">Remote Accessibility</h4>
+                        <p class="text-xs text-gray-600 leading-relaxed">Access business data from anywhere securely, without directly exposing the core Tally server to the internet or managing complex VPN setups.</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-900 mb-1">Enhanced Security</h4>
+                        <p class="text-xs text-gray-600 leading-relaxed">Prevents direct and unauthorized ledger manipulation. All entries must pass through defined approval stages before reaching the master books.</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-900 mb-1">Real-time Analytics</h4>
+                        <p class="text-xs text-gray-600 leading-relaxed">Provides instant financial insights including interactive dashboard charts, P&L reporting, and balance sheets based on live synced data.</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-900 mb-1">Multi-company Management</h4>
+                        <p class="text-xs text-gray-600 leading-relaxed">Effortlessly switch between different business entities and subsidiaries from a single interface, maintaining separate ledgers and settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Features -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-50 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                    Core Features
+                </h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
+                    <h4 class="text-sm font-bold text-gray-900 mb-2">Role-Based Access Control (RBAC)</h4>
+                    <p class="text-xs text-gray-600">Assigns distinct operational limits to different personnel. Accountants can draft entries, Financial Managers verify and approve them, and Administrators oversee system configurations and Tally sync rights.</p>
+                </div>
+                <div class="p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
+                    <h4 class="text-sm font-bold text-gray-900 mb-2">AI-Assisted Insights</h4>
+                    <p class="text-xs text-gray-600">Proactively scans financial data to detect anomalies, such as vendors exceeding credit limits or unusual expenditure spikes, alerting management instantly.</p>
+                </div>
+                <div class="p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
+                    <h4 class="text-sm font-bold text-gray-900 mb-2">GST Compliant Invoicing</h4>
+                    <p class="text-xs text-gray-600">Built-in support for seamless GST calculations, HSN codes, and compliance tracking ensuring that every synchronized voucher is tax-ready.</p>
+                </div>
+                <div class="p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
+                    <h4 class="text-sm font-bold text-gray-900 mb-2">Detailed Audit Trails</h4>
+                    <p class="text-xs text-gray-600">Maintains comprehensive immutable logs of every synchronization event, login, approval decision, and ledger modification to ensure strict compliance and accountability.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operational Workflow -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-50 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    Operational Workflow
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="relative border-l border-gray-200 ml-3 space-y-8 pb-2">
+                    <div class="relative pl-6">
+                        <div class="absolute -left-1.5 mt-1.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-brand-100"></div>
+                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">1. Secure Authentication</h4>
+                        <p class="mt-1 text-xs text-gray-600">Users log in securely via the web portal based on their designated roles, revealing only the features they are authorized to use.</p>
+                    </div>
+                    <div class="relative pl-6">
+                        <div class="absolute -left-1.5 mt-1.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-brand-100"></div>
+                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">2. Voucher Creation</h4>
+                        <p class="mt-1 text-xs text-gray-600">Accountants draft invoices and entries with automatic mathematical verification, ensuring double-entry balance and correct GST structures before submission.</p>
+                    </div>
+                    <div class="relative pl-6">
+                        <div class="absolute -left-1.5 mt-1.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-brand-100"></div>
+                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">3. Maker-Checker Approval</h4>
+                        <p class="mt-1 text-xs text-gray-600">Drafted vouchers sit in a 'Pending' queue. A designated Financial Manager reviews the entries, resolving discrepancies, and provides final authorization.</p>
+                    </div>
+                    <div class="relative pl-6">
+                        <div class="absolute -left-1.5 mt-1.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-brand-100"></div>
+                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">4. Direct Tally Sync</h4>
+                        <p class="mt-1 text-xs text-gray-600">Approved data is losslessly and idempotently pushed to the physical Tally Prime software. The system prevents duplicates and confirms successful record entry.</p>
+                    </div>
+                    <div class="relative pl-6">
+                        <div class="absolute -left-1.5 mt-1.5 w-3 h-3 bg-brand-500 rounded-full ring-4 ring-brand-100"></div>
+                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wide">5. AI Analysis & Reporting</h4>
+                        <p class="mt-1 text-xs text-gray-600">The platform automatically recalculates live dashboards, generates fresh balance sheets, and provides AI insights on the updated financial stance.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>
