@@ -267,7 +267,6 @@ def retry_sync_log_view(request, log_id):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-@login_required
 def about_project_view(request):
     """
     Static page explaining the ERP architecture and data flows.
