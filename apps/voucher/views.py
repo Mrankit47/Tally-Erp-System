@@ -96,7 +96,7 @@ def voucher_create_view(request, voucher_type):
         
         if header_form.is_valid() and formset.is_valid():
             try:
-                with transaction.atomic():
+                with transaction.atomic():  # type: ignore
                     voucher = header_form.save(commit=False)
                     voucher.company = company
                     voucher.voucher_type = target_type
@@ -369,7 +369,7 @@ def voucher_scan_save_api(request):
         purchase_ledger = get_object_or_404(Ledger, pk=purchase_ledger_id, company=company)
 
         # Start atomic transaction block
-        with transaction.atomic():
+        with transaction.atomic():  # type: ignore
             # 1. Create Voucher Header
             voucher = Voucher.objects.create(
                 company=company,

@@ -96,9 +96,10 @@ class TallySyncService:
 
             tally_ledgers = self.parser.parse_ledgers(xml_response)
             
-            if not tally_ledgers:
-                logger.warning(f"Tally Sync: No ledgers found. Raw response length: {len(xml_response)}")
-                log.message = f"No ledgers found in Tally response (Length: {len(xml_response)} bytes)."
+            if not xml_response or not tally_ledgers:
+                response_len = len(xml_response) if xml_response else 0
+                logger.warning(f"Tally Sync: No ledgers found. Raw response length: {response_len}")
+                log.message = f"No ledgers found in Tally response (Length: {response_len} bytes)."
                 log.save()
                 return 0
 
@@ -276,7 +277,7 @@ class TallySyncService:
                 ledger.save(update_fields=['sync_status'])
                 
                 log.message = f"Tally Validation Error: {error_msg}"
-                log.response_xml = xml_response[:2000]
+                log.response_xml = xml_response[:2000] if xml_response else ""
                 log.save()
                 return False
 
@@ -480,7 +481,7 @@ class TallySyncService:
                 log.message = (
                     f"Tally rejected {label} Voucher '{voucher.number}': {error_msg}"
                 )
-                log.response_xml = xml_response[:5000]
+                log.response_xml = xml_response[:5000] if xml_response else ""
                 log.save()
 
                 logger.error(f"{label} Voucher '{voucher.number}' push FAILED: {error_msg}")

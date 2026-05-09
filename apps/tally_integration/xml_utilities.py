@@ -477,7 +477,8 @@ class TallyXMLParser:
             root = ET.fromstring(xml_content)
             items = []
             for item_node in root.iter('STOCKITEM'):
-                name = item_node.get('NAME') or (item_node.find('NAME').text if item_node.find('NAME') is not None else None)
+                name_node = item_node.find('NAME')
+                name = item_node.get('NAME') or (name_node.text if name_node is not None else None)
                 if not name:
                     continue
                 name = name.strip()
