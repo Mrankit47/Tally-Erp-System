@@ -5,7 +5,7 @@ class Command(BaseCommand):
     help = 'Creates default structural Role-Based Access Control (RBAC) groups.'
 
     def handle(self, *args, **options):
-        groups = ['Admin', 'Accountant', 'User']
+        groups = ['Admin', 'Accountant', 'Manager', 'InventoryManager', 'User', 'Billing Clerk']
         for group in groups:
             created_group, created = Group.objects.get_or_create(name=group)
             if created:

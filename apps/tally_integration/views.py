@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from core.permissions import role_required
 from company.models import Company
-from voucher.models import Voucher, VoucherType
+from voucher.models import Voucher, VoucherType, VoucherStatus
 from .services import TallySyncService
 
 
@@ -24,7 +24,7 @@ def _get_active_company(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 @require_POST
 def sync_single_voucher_view(request, voucher_id):
     """AJAX endpoint to sync a specific voucher to Tally."""
@@ -32,6 +32,13 @@ def sync_single_voucher_view(request, voucher_id):
     if error:
         return error
     voucher = get_object_or_404(Voucher, id=voucher_id, company=company)
+    
+    if voucher.status != VoucherStatus.APPROVED:
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Invoice is not approved yet. Please approve the invoice before pushing to Tally.'
+        }, status=400)
+        
     service = TallySyncService(company, request.user)
     
     # Map voucher type to service method
@@ -57,7 +64,7 @@ from ledger.models import Ledger, LedgerGroup
 from core.models import SyncStatus as ModelSyncStatus
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 @require_POST
 def delete_sync_log_view(request, log_id):
     """
@@ -109,7 +116,7 @@ def delete_sync_log_view(request, log_id):
         return JsonResponse({'status': 'error', 'message': f'Rollback failed: {str(e)}'}, status=500)
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 @require_POST
 def sync_ledgers_view(request):
     """AJAX endpoint to trigger full ledger sync from Tally."""

@@ -153,6 +153,7 @@
                     Sales
                 </a>
 
+                {% if user.profile.role.name != 'Billing Clerk' %}
                 <a href="{% url 'purchases_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'purchases' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                     <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                     Purchases
@@ -213,6 +214,7 @@
                     <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     Sync Logs
                 </a>
+                {% endif %}
 
                 <p class="px-3 pt-4 text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">System Control</p>
 
@@ -234,20 +236,35 @@
             </nav>
 
             <!-- User Section -->
-            <div class="p-4 border-t border-gray-100">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold shadow">
-                        {% if user.first_name %}{{ user.first_name.0 }}{% else %}U{% endif %}
+            <div class="p-4 border-t border-gray-100 bg-slate-50/50">
+                <div class="bg-white border border-gray-200 p-3 rounded-xl shadow-sm mb-3">
+                    <div class="flex items-center gap-3 mb-3 pb-3 border-b border-gray-50">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-lg font-bold shadow-sm flex-shrink-0">
+                            {% if user.first_name %}{{ user.first_name.0 }}{% else %}{{ user.username.0|upper }}{% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-gray-900 truncate">{{ user.get_full_name|default:user.username }}</p>
+                            <span class="inline-block px-2 py-0.5 mt-0.5 bg-brand-50 text-brand-700 border border-brand-100 rounded-md text-[10px] font-bold tracking-wider uppercase">
+                                {% if user.is_superuser %}Superadmin{% else %}{{ user.profile.role.name|default:"User" }}{% endif %}
+                            </span>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">{{ user.get_full_name|default:user.username }}</p>
-                        <p class="text-xs text-gray-400 truncate">{{ user.email|default:"user@erp.com" }}</p>
+                    <div class="space-y-2 px-1">
+                        <div class="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                            <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            <span class="truncate">{{ user.email|default:"No email provided" }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                            <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                            <span>{% if user.phone %}{{ user.phone }}{% else %}No phone provided{% endif %}</span>
+                        </div>
                     </div>
                 </div>
+
                 <!-- Logout Form -->
-                <form action="{% url 'logout' %}" method="post" class="mt-4">
+                <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
-                    <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-100 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-all">
+                    <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-100 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                         Sign Out
                     </button>
