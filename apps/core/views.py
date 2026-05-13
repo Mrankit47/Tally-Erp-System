@@ -181,7 +181,7 @@ def sync_logs_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 @require_POST
 def trigger_sync_view(request):
     """
@@ -240,7 +240,7 @@ def trigger_sync_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 @require_POST
 def retry_sync_log_view(request, log_id):
     """
@@ -276,7 +276,7 @@ def about_project_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def masters_hub_view(request):
     """
     Tally-style 'Create Masters' hub page.
@@ -316,7 +316,7 @@ def masters_hub_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def generic_master_view(request, slug):
     """
     A dynamic view to handle listing and creation of various simple Tally masters.

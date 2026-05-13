@@ -17,7 +17,7 @@ from .forms import StockItemForm
 
 
 @login_required
-@role_required(['Admin', 'Accountant', 'InventoryManager'])
+@role_required(['Admin', 'Accountant', 'Manager', 'InventoryManager'])
 def stock_item_list_view(request):
     """List view for all inventory Stock Items."""
     company = getattr(request, 'active_company', None)
@@ -39,7 +39,7 @@ def stock_item_list_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant', 'InventoryManager'])
+@role_required(['Admin', 'Accountant', 'Manager', 'InventoryManager'])
 def stock_item_create_view(request):
     """View to register a new Stock Item."""
     company = getattr(request, 'active_company', None)

@@ -22,7 +22,7 @@ from voucher.models import VoucherEntry, EntryType, VoucherType
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def trial_balance_view(request):
     """Renders the HTML Trial Balance Report."""
     company = getattr(request, 'active_company', None)
@@ -41,7 +41,7 @@ def trial_balance_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def export_trial_balance_csv(request):
     """Exports the Trial Balance to CSV."""
     company = getattr(request, 'active_company', None)
@@ -77,7 +77,7 @@ def export_trial_balance_csv(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def profit_loss_view(request):
     """Renders the HTML Profit & Loss Statement with Visual Analytics."""
     company = getattr(request, 'active_company', None)
@@ -132,7 +132,7 @@ def profit_loss_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def export_profit_loss_csv(request):
     """Exports the Profit & Loss statement to CSV."""
     company = getattr(request, 'active_company', None)

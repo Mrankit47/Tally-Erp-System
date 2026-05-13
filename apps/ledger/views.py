@@ -15,7 +15,7 @@ from .services import initialize_tally_groups
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def ledger_list_view(request):
     """
     Displays the Chart of Accounts (Ledgers grouped by Category).
@@ -38,7 +38,7 @@ def ledger_list_view(request):
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager'])
 def ledger_create_view(request):
     """
     Handles creation of a new Ledger.

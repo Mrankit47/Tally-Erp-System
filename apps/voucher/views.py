@@ -21,11 +21,18 @@ logger = logging.getLogger(__name__)
 
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager', 'Billing Clerk'])
 def voucher_list_view(request, voucher_type):
     """
     Categorized list view for Vouchers (Sales, Payments, Receipts, etc.).
     """
+    user_role = getattr(getattr(request.user, 'profile', None), 'role', None)
+    user_role_name = user_role.name.strip() if user_role else None
+    
+    if user_role_name == 'Billing Clerk' and voucher_type.lower() != 'sales':
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("Billing Clerks are only allowed to view Sales Vouchers.")
+
     company = getattr(request, 'active_company', None)
     
     type_map = {
@@ -67,11 +74,18 @@ def voucher_list_view(request, voucher_type):
 from ledger.models import Ledger
 
 @login_required
-@role_required(['Admin', 'Accountant'])
+@role_required(['Admin', 'Accountant', 'Manager', 'Billing Clerk'])
 def voucher_create_view(request, voucher_type):
     """
     Handles creation of a new Voucher with inline entries.
     """
+    user_role = getattr(getattr(request.user, 'profile', None), 'role', None)
+    user_role_name = user_role.name.strip() if user_role else None
+    
+    if user_role_name == 'Billing Clerk' and voucher_type.lower() != 'sales':
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("Billing Clerks are only allowed to create Sales Vouchers.")
+
     company = getattr(request, 'active_company', None)
     ledger_count = Ledger.objects.filter(company=company).count()
     
@@ -102,7 +116,15 @@ def voucher_create_view(request, voucher_type):
                     voucher.voucher_type = target_type
                     voucher.created_by = request.user
                     voucher.updated_by = request.user
-                    voucher.is_posted = True # Automatically post for simple UX
+                    
+                    # Workflow Logic
+                    if user_role_name in ['Admin', 'Accountant', 'Manager']:
+                        voucher.status = VoucherStatus.APPROVED
+                        voucher.is_posted = True
+                    else:
+                        voucher.status = VoucherStatus.PENDING
+                        voucher.is_posted = False
+
                     voucher.save()
                     
                     formset.instance = voucher

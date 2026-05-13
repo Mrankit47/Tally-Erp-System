@@ -380,6 +380,8 @@ class TallyXMLGenerator:
         invoice_tag = '\n                        <ISINVOICE>Yes</ISINVOICE>' if is_invoice else ''
         inventory_flag = f'\n                        <HASINVENTORYENTRIES>{has_inventory}</HASINVENTORYENTRIES>' if include_inventory else ''
 
+        static_vars = TallyXMLGenerator._get_static_variables(company_name=voucher.company.name)
+
         return f"""<ENVELOPE>
     <HEADER>
         <TALLYREQUEST>Import Data</TALLYREQUEST>
@@ -388,6 +390,7 @@ class TallyXMLGenerator:
         <IMPORTDATA>
             <REQUESTDESC>
                 <REPORTNAME>Vouchers</REPORTNAME>
+                {static_vars}
             </REQUESTDESC>
             <REQUESTDATA>
                 <TALLYMESSAGE xmlns:UDF="TallyUDF">

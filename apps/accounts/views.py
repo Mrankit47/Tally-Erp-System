@@ -91,8 +91,8 @@ from django.contrib import messages
 @login_required
 @admin_only
 def user_management_view(request):
-    """List all users and their roles for management."""
-    users = User.objects.all().select_related('profile__role')
+    """List all non-superuser users and their roles for management."""
+    users = User.objects.filter(is_superuser=False).select_related('profile__role')
     roles = Role.objects.all()
     context = {
         'users': users,
