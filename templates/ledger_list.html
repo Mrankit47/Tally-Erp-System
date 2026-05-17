@@ -52,13 +52,13 @@
                 
                 const data = await response.json();
                 if (data.status === 'success') {
-                    alert(data.message);
-                    window.location.reload();
+                    showModalAlert(data.message, "Success", "info");
+                    setTimeout(() => window.location.reload(), 2000);
                 } else {
-                    alert('Error: ' + data.message);
+                    showModalAlert(data.message, "Sync Error", "error");
                 }
             } catch (err) {
-                alert('Connection Error: Could not reach the ERP server.');
+                showModalAlert('Connection Error: Could not reach the ERP server.', "Connection Error", "error");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
@@ -67,15 +67,15 @@
 
         // Event Listeners
         document.getElementById('sync-tally-btn')?.addEventListener('click', function() {
-            if (confirm('This will fetch all Ledger masters from your running Tally ERP. Continue?')) {
+            showModalConfirm('This will fetch all Ledger masters from your running Tally ERP. Continue?', 'Confirm Import', () => {
                 triggerSync('ledgers', this, 'Importing');
-            }
+            });
         });
 
         document.getElementById('push-tally-btn')?.addEventListener('click', function() {
-            if (confirm('This will upload all local Ledgers to Tally ERP. Continue?')) {
+            showModalConfirm('This will upload all local Ledgers to Tally ERP. Continue?', 'Confirm Upload', () => {
                 triggerSync('ledgers_push', this, 'Uploading');
-            }
+            });
         });
     </script>
 

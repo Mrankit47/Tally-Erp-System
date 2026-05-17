@@ -193,35 +193,36 @@
         };
 
         // ─── Bulk Sync Handler ───
-        document.getElementById('bulk-sync-btn')?.addEventListener('click', async function() {
+        document.getElementById('bulk-sync-btn')?.addEventListener('click', function() {
             const btn = this;
             const originalContent = btn.innerHTML;
             
-            if (!confirm('Push all unsynced vouchers to Tally ERP?')) return;
+            showModalConfirm('Push all unsynced vouchers to Tally ERP?', 'Confirm Bulk Sync', async () => {
+                btn.disabled = true;
+                btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Syncing...`;
 
-            btn.disabled = true;
-            btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Syncing...`;
-
-            try {
-                const response = await fetch('{% url "trigger-sync" %}', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ type: 'vouchers' })
-                });
-                
-                const data = await response.json();
-                if (data.status === 'success') {
-                    alert(data.message);
-                    window.location.reload();
-                } else {
-                    alert('Sync Error: ' + data.message);
+                try {
+                    const response = await fetch('{% url "trigger-sync" %}', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({ type: 'vouchers' })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showModalAlert(data.message, "Success", "info");
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showModalAlert('Sync Error: ' + data.message, "Error", "error");
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                    }
+                } catch (err) {
+                    showModalAlert('Connection Error: Could not reach the ERP server.', "Error", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
                 }
-            } catch (err) {
-                alert('Connection Error: Could not reach the ERP server.');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalContent;
-            }
+            });
         });
 
         // ─── Individual Push Handler ───
@@ -243,11 +244,12 @@
                     if (response.ok && data.status === 'success') {
                         window.location.reload();
                     } else {
-                        alert('Tally Sync Error: ' + (data.message || 'Unknown server error'));
+                        showModalAlert('Tally Sync Error: ' + (data.message || 'Unknown server error'), "Error", "error");
+                        this.disabled = false;
+                        this.innerHTML = originalContent;
                     }
                 } catch (err) {
-                    alert('Connection Error: Could not reach the ERP server. Please ensure the backend is running.');
-                } finally {
+                    showModalAlert('Connection Error: Could not reach the ERP server. Please ensure the backend is running.', "Error", "error");
                     this.disabled = false;
                     this.innerHTML = originalContent;
                 }
@@ -256,34 +258,34 @@
 
         // ─── Voucher Approval Handler ───
         document.querySelectorAll('.approve-voucher-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
+            btn.addEventListener('click', function() {
                 const voucherId = this.dataset.id;
                 const originalContent = this.innerHTML;
                 
-                if (!confirm('Are you sure you want to approve this voucher? It will become immutable and ready for invoicing.')) return;
+                showModalConfirm('Are you sure you want to approve this voucher? It will become immutable and ready for invoicing.', 'Confirm Approval', async () => {
+                    btn.disabled = true;
+                    btn.innerHTML = `<svg class="w-3 h-3 animate-spin inline-block mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4m2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> APPROVING...`;
 
-                this.disabled = true;
-                this.innerHTML = `<svg class="w-3 h-3 animate-spin inline-block mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4m2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> APPROVING...`;
-
-                try {
-                    const response = await fetch(`/vouchers/approve-voucher/${voucherId}/`, {
-                        method: 'POST',
-                        headers: headers
-                    });
-                    
-                    const data = await response.json();
-                    if (response.ok && data.status === 'success') {
-                        window.location.reload();
-                    } else {
-                        alert('Approval Error: ' + (data.message || 'Permission Denied'));
-                        this.disabled = false;
-                        this.innerHTML = originalContent;
+                    try {
+                        const response = await fetch(`/vouchers/approve-voucher/${voucherId}/`, {
+                            method: 'POST',
+                            headers: headers
+                        });
+                        
+                        const data = await response.json();
+                        if (response.ok && data.status === 'success') {
+                            window.location.reload();
+                        } else {
+                            showModalAlert('Approval Error: ' + (data.message || 'Permission Denied'), "Error", "error");
+                            btn.disabled = false;
+                            btn.innerHTML = originalContent;
+                        }
+                    } catch (err) {
+                        showModalAlert('Connection Error: Could not reach the server.', "Error", "error");
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
                     }
-                } catch (err) {
-                    alert('Connection Error: Could not reach the server.');
-                    this.disabled = false;
-                    this.innerHTML = originalContent;
-                }
+                });
             });
         });
 
@@ -307,7 +309,7 @@
             const btn = this;
 
             if (!fromDate || !toDate) {
-                alert('Please select both From and To dates.');
+                showModalAlert('Please select both From and To dates.', "Validation Error", "error");
                 return;
             }
 
@@ -317,11 +319,11 @@
             const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
             if (diffDays < 0) {
-                alert('To Date must be after From Date.');
+                showModalAlert('To Date must be after From Date.', "Validation Error", "error");
                 return;
             }
             if (diffDays > 31) {
-                alert('Maximum allowed range is 30 days. Please select a shorter period.');
+                showModalAlert('Maximum allowed range is 30 days. Please select a shorter period.', "Validation Error", "error");
                 return;
             }
 
@@ -343,15 +345,15 @@
                 
                 const data = await response.json();
                 if (data.status === 'success') {
-                    alert(data.message + "\nCheck Sync Logs for detailed results.");
-                    window.location.reload();
+                    showModalAlert(data.message + "\nCheck Sync Logs for detailed results.", "Import Successful", "info");
+                    setTimeout(() => window.location.reload(), 2000);
                 } else {
-                    alert('Import Error: ' + data.message);
+                    showModalAlert('Import Error: ' + data.message, "Error", "error");
                     btn.disabled = false;
                     btn.innerHTML = originalContent;
                 }
             } catch (err) {
-                alert('Connection Error: Could not reach server.');
+                showModalAlert('Connection Error: Could not reach server.', "Error", "error");
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
             }

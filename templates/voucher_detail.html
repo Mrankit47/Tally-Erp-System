@@ -204,37 +204,37 @@
 
 <script>
     document.querySelectorAll('.approve-voucher-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
+        btn.addEventListener('click', function() {
             const voucherId = this.dataset.id;
             const originalContent = this.innerHTML;
             
-            if (!confirm('Are you sure you want to approve this voucher? It will become immutable and ready for invoicing.')) return;
+            showModalConfirm('Are you sure you want to approve this voucher? It will become immutable and ready for invoicing.', 'Confirm Approval', async () => {
+                btn.disabled = true;
+                btn.innerHTML = `APPROVING...`;
 
-            this.disabled = true;
-            this.innerHTML = `APPROVING...`;
-
-            try {
-                const response = await fetch(`/vouchers/approve-voucher/${voucherId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
+                try {
+                    const response = await fetch(`/vouchers/approve-voucher/${voucherId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok && data.status === 'success') {
+                        window.location.reload();
+                    } else {
+                        showModalAlert('Approval Error: ' + (data.message || 'Permission Denied'), 'Error', 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
                     }
-                });
-                
-                const data = await response.json();
-                if (response.ok && data.status === 'success') {
-                    window.location.reload();
-                } else {
-                    alert('Approval Error: ' + (data.message || 'Permission Denied'));
-                    this.disabled = false;
-                    this.innerHTML = originalContent;
+                } catch (err) {
+                    showModalAlert('Connection Error: Could not reach the server.', 'Error', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
                 }
-            } catch (err) {
-                alert('Connection Error: Could not reach the server.');
-                this.disabled = false;
-                this.innerHTML = originalContent;
-            }
+            });
         });
     });
 </script>

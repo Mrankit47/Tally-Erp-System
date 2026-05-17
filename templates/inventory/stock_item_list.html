@@ -47,13 +47,13 @@
                 });
                 const data = await response.json();
                 if (data.status === 'success') {
-                    alert(data.message);
-                    window.location.reload();
+                    showModalAlert(data.message, "Success", "info");
+                    setTimeout(() => window.location.reload(), 2000);
                 } else {
-                    alert('Error: ' + data.message);
+                    showModalAlert(data.message, "Sync Error", "error");
                 }
             } catch (err) {
-                alert('Connection Error: Could not reach server.');
+                showModalAlert('Connection Error: Could not reach server.', "Connection Error", "error");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
@@ -61,11 +61,11 @@
         }
 
         document.getElementById('sync-tally-btn')?.addEventListener('click', function() {
-            if (confirm('Import all Stock Items from Tally?')) triggerSync('stock_items', this, 'Importing');
+            showModalConfirm('Import all Stock Items from Tally?', 'Confirm Import', () => triggerSync('stock_items', this, 'Importing'));
         });
 
         document.getElementById('push-tally-btn')?.addEventListener('click', function() {
-            if (confirm('Upload all local Stock Items to Tally?')) triggerSync('stock_items_push', this, 'Uploading');
+            showModalConfirm('Upload all local Stock Items to Tally?', 'Confirm Upload', () => triggerSync('stock_items_push', this, 'Uploading'));
         });
     </script>
 

@@ -252,7 +252,7 @@
                     row.remove();
                     updateTotals();
                 } else {
-                    alert("At least two entries are required for a voucher.");
+                    showModalAlert("At least two entries are required for a voucher.", "Validation Error", "error");
                 }
             });
         }
@@ -293,7 +293,7 @@
                 const amt = type === 'DR' ? (parseFloat(row.querySelector('.dr-amount').value) || 0) : (parseFloat(row.querySelector('.cr-amount').value) || 0);
                 
                 if (amt > 0 && !ledgerId) {
-                    alert("Please select a ledger for all entered amounts.");
+                    showModalAlert("Please select a ledger for all entered amounts.", "Validation Error", "error");
                     valid = false;
                 }
             });

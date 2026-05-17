@@ -259,7 +259,7 @@
             const partyId = document.getElementById('party-select').value;
             const purchaseLedgerId = document.getElementById('purchase-ledger-select').value;
             if (!partyId || !purchaseLedgerId) {
-                alert("Please select Party and Purchase Ledger.");
+                showModalAlert("Please select Party and Purchase Ledger.", "Validation Error", "error");
                 e.preventDefault();
                 return;
             }
