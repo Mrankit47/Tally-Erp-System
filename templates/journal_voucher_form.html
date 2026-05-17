@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Journal Voucher | {{ company.name }}{% endblock %}
+{% block page_title %}Journal Voucher{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-8 px-4">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="mb-8 flex items-center justify-between animate-fade-in">
+        <div>
+            <h2 class="text-3xl font-black text-gray-900 tracking-tight">Journal Voucher</h2>
+            <p class="text-sm text-gray-500 mt-1">Record adjustment entries between ledgers (F7).</p>
+        </div>
+        <div class="text-right">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Voucher No</span>
+            <span class="text-xl font-mono font-bold text-brand-600 bg-brand-50 px-4 py-1.5 rounded-xl border border-brand-100">
+                AUTO
+            </span>
+        </div>
+    </div>
+
+    <!-- ═══════════ EMPTY MASTER ALERT ═══════════ -->
+    {% if all_ledgers.count < 2 %}
+    <div class="mb-8 p-6 bg-amber-50 rounded-3xl border border-amber-100 flex items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-amber-900 uppercase tracking-tight">Masters Empty</h4>
+                <p class="text-xs text-amber-700">You need at least two ledgers to record a journal entry.</p>
+            </div>
+        </div>
+        <a href="{% url 'ledger_create' %}" class="px-6 py-2 bg-amber-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-200 hover:bg-amber-700 uppercase tracking-widest">
+            Create Ledger
+        </a>
+    </div>
+    {% endif %}
+
+    <form method="POST" id="journal-form" class="space-y-6">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <!-- ═══════════ VOUCHER DATE & NARRATION ═══════════ -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-8 space-y-6 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Date -->
+                <div class="space-y-2 md:col-span-1">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Voucher Date</label>
+                    {{ header_form.date }}
+                </div>
+                <!-- Narration -->
+                <div class="space-y-2 md:col-span-2">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Narration (Remarks)</label>
+                    {{ header_form.narration }}
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ PARTICULARS TABLE ═══════════ -->
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="px-8 py-5 bg-gray-50/50 border-b border-gray-50 flex items-center justify-between">
+                <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Accounting Entries</h3>
+                <button type="button" id="add-row" class="text-[10px] font-bold text-brand-600 hover:text-brand-700 flex items-center gap-2 uppercase tracking-widest transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Add Row
+                </button>
+            </div>
+
+            <div class="p-0">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">
+                            <th class="px-8 py-4 w-24">Dr / Cr</th>
+                            <th class="px-4 py-4 w-1/2">Particulars (Ledger Account)</th>
+                            <th class="px-4 py-4 text-right">Debit (₹)</th>
+                            <th class="px-8 py-4 text-right">Credit (₹)</th>
+                            <th class="px-4 py-4 text-center w-12"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="entries-body" class="divide-y divide-gray-50">
+                        <!-- Two default rows for Debit and Credit -->
+                        <tr class="entry-row group hover:bg-gray-50/30 transition-colors">
+                            <td class="px-8 py-4">
+                                <select class="type-select w-full rounded-xl border-gray-200 bg-gray-50 py-2 px-3 text-xs font-bold focus:border-brand-500 transition-all">
+                                    <option value="DR" selected>Dr (By)</option>
+                                    <option value="CR">Cr (To)</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <select class="ledger-select w-full rounded-xl border-gray-200 py-2 px-3 text-sm font-semibold focus:border-brand-500 transition-all">
+                                    <option value="">-- Select Ledger --</option>
+                                    {% for l in all_ledgers %}
+                                        <option value="{{ l.id }}">{{ l.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-4 text-right">
+                                <input type="number" step="0.01" class="dr-amount w-32 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-black text-right focus:border-brand-500 transition-all text-emerald-600" placeholder="0.00">
+                            </td>
+                            <td class="px-8 py-4 text-right">
+                                <input type="number" step="0.01" class="cr-amount w-32 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-black text-right focus:border-brand-500 transition-all text-rose-600" placeholder="0.00" disabled>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <button type="button" class="remove-row text-gray-300 hover:text-red-500 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="entry-row group hover:bg-gray-50/30 transition-colors">
+                            <td class="px-8 py-4">
+                                <select class="type-select w-full rounded-xl border-gray-200 bg-gray-50 py-2 px-3 text-xs font-bold focus:border-brand-500 transition-all">
+                                    <option value="DR">Dr (By)</option>
+                                    <option value="CR" selected>Cr (To)</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-4">
+                                <select class="ledger-select w-full rounded-xl border-gray-200 py-2 px-3 text-sm font-semibold focus:border-brand-500 transition-all">
+                                    <option value="">-- Select Ledger --</option>
+                                    {% for l in all_ledgers %}
+                                        <option value="{{ l.id }}">{{ l.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-4 text-right">
+                                <input type="number" step="0.01" class="dr-amount w-32 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-black text-right focus:border-brand-500 transition-all text-emerald-600" placeholder="0.00" disabled>
+                            </td>
+                            <td class="px-8 py-4 text-right">
+                                <input type="number" step="0.01" class="cr-amount w-32 rounded-xl border-transparent bg-transparent hover:bg-gray-100/50 py-2 px-3 text-sm font-black text-right focus:border-brand-500 transition-all text-rose-600" placeholder="0.00">
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <button type="button" class="remove-row text-gray-300 hover:text-red-500 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- TOTALS -->
+            <div class="p-8 bg-gray-900 text-white flex flex-col sm:flex-row items-center justify-between gap-8">
+                <div>
+                    <p id="match-status" class="text-xs font-bold px-3 py-1 rounded-full bg-gray-800 text-gray-400">
+                        Checking Totals...
+                    </p>
+                </div>
+                <div class="flex gap-12 text-right">
+                    <div>
+                        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total Debit</p>
+                        <p class="text-3xl font-black tracking-tight text-emerald-400">₹ <span id="total-dr">0.00</span></p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total Credit</p>
+                        <p class="text-3xl font-black tracking-tight text-rose-400">₹ <span id="total-cr">0.00</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex items-center justify-end gap-6 pt-4">
+            <a href="{% url 'journal_list' %}" class="text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest">Discard</a>
+            <button type="submit" id="submit-btn" disabled class="px-12 py-4 bg-brand-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-brand-200 hover:bg-brand-700 hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed transition-all">
+                Post Journal
+            </button>
+        </div>
+
+        <!-- HIDDEN REAL FORMSET ROWS -->
+        <div id="hidden-formset" class="hidden">
+            {% for form in formset %}
+                <div class="real-row-data">
+                    {{ form.ledger }}
+                    {{ form.amount }}
+                    {{ form.entry_type }}
+                    {{ form.id }}
+                </div>
+            {% endfor %}
+        </div>
+    </form>
+</div>
+
+<style>
+    #journal-form input:focus, #journal-form select:focus, #journal-form textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rowContainer = document.getElementById('entries-body');
+        const totalDrSpan = document.getElementById('total-dr');
+        const totalCrSpan = document.getElementById('total-cr');
+        const submitBtn = document.getElementById('submit-btn');
+        const matchStatus = document.getElementById('match-status');
+        const totalFormsInput = document.getElementById('id_entries-TOTAL_FORMS');
+
+        function updateTotals() {
+            let totalDr = 0;
+            let totalCr = 0;
+
+            document.querySelectorAll('.entry-row').forEach(row => {
+                const type = row.querySelector('.type-select').value;
+                if (type === 'DR') {
+                    totalDr += parseFloat(row.querySelector('.dr-amount').value) || 0;
+                } else {
+                    totalCr += parseFloat(row.querySelector('.cr-amount').value) || 0;
+                }
+            });
+
+            totalDrSpan.textContent = totalDr.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            totalCrSpan.textContent = totalCr.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+            if (totalDr > 0 && totalDr === totalCr) {
+                matchStatus.textContent = 'Totals Match (Valid)';
+                matchStatus.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400';
+                submitBtn.disabled = false;
+            } else {
+                matchStatus.textContent = 'Debit and Credit must be equal';
+                matchStatus.className = 'text-xs font-bold px-3 py-1 rounded-full bg-red-500/20 text-red-400';
+                submitBtn.disabled = true;
+            }
+        }
+
+        function setupRow(row) {
+            const typeSelect = row.querySelector('.type-select');
+            const drInput = row.querySelector('.dr-amount');
+            const crInput = row.querySelector('.cr-amount');
+            const removeBtn = row.querySelector('.remove-row');
+
+            typeSelect.addEventListener('change', () => {
+                if (typeSelect.value === 'DR') {
+                    drInput.disabled = false;
+                    crInput.disabled = true;
+                    crInput.value = '';
+                } else {
+                    drInput.disabled = true;
+                    drInput.value = '';
+                    crInput.disabled = false;
+                }
+                updateTotals();
+            });
+
+            drInput.addEventListener('input', updateTotals);
+            crInput.addEventListener('input', updateTotals);
+
+            removeBtn.addEventListener('click', () => {
+                if (document.querySelectorAll('.entry-row').length > 2) {
+                    row.remove();
+                    updateTotals();
+                } else {
+                    alert("At least two entries are required for a voucher.");
+                }
+            });
+        }
+
+        // Setup existing rows
+        document.querySelectorAll('.entry-row').forEach(setupRow);
+
+        // Add Row
+        document.getElementById('add-row').addEventListener('click', () => {
+            const firstRow = document.querySelector('.entry-row');
+            const newRow = firstRow.cloneNode(true);
+            newRow.querySelector('.ledger-select').value = '';
+            newRow.querySelector('.dr-amount').value = '';
+            newRow.querySelector('.cr-amount').value = '';
+            
+            // Set default to DR
+            newRow.querySelector('.type-select').value = 'DR';
+            newRow.querySelector('.dr-amount').disabled = false;
+            newRow.querySelector('.cr-amount').disabled = true;
+
+            rowContainer.appendChild(newRow);
+            setupRow(newRow);
+            updateTotals();
+        });
+
+        // PRE-SUBMIT
+        document.getElementById('journal-form').addEventListener('submit', function(e) {
+            updateTotals();
+            if (submitBtn.disabled) {
+                e.preventDefault();
+                return;
+            }
+
+            let valid = true;
+            document.querySelectorAll('.entry-row').forEach(row => {
+                const ledgerId = row.querySelector('.ledger-select').value;
+                const type = row.querySelector('.type-select').value;
+                const amt = type === 'DR' ? (parseFloat(row.querySelector('.dr-amount').value) || 0) : (parseFloat(row.querySelector('.cr-amount').value) || 0);
+                
+                if (amt > 0 && !ledgerId) {
+                    alert("Please select a ledger for all entered amounts.");
+                    valid = false;
+                }
+            });
+
+            if (!valid) {
+                e.preventDefault();
+                return;
+            }
+
+            const hiddenContainer = document.getElementById('hidden-formset');
+            const templateRow = hiddenContainer.querySelector('.real-row-data').cloneNode(true);
+            hiddenContainer.innerHTML = '';
+            let rowIndex = 0;
+
+            document.querySelectorAll('.entry-row').forEach(row => {
+                const ledgerId = row.querySelector('.ledger-select').value;
+                const type = row.querySelector('.type-select').value;
+                const amt = type === 'DR' ? (parseFloat(row.querySelector('.dr-amount').value) || 0) : (parseFloat(row.querySelector('.cr-amount').value) || 0);
+
+                if (ledgerId && amt > 0) {
+                    const newRealRow = templateRow.cloneNode(true);
+                    newRealRow.innerHTML = newRealRow.innerHTML.replace(/-0-/g, `-${rowIndex}-`);
+                    newRealRow.querySelector(`[name$="-ledger"]`).value = ledgerId;
+                    newRealRow.querySelector(`[name$="-amount"]`).value = amt.toFixed(2);
+                    newRealRow.querySelector(`[name$="-entry_type"]`).value = type;
+                    hiddenContainer.appendChild(newRealRow);
+                    rowIndex++;
+                }
+            });
+
+            totalFormsInput.value = rowIndex;
+        });
+    });
+</script>
+{% endblock %}

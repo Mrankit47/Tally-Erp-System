@@ -14,6 +14,9 @@ urlpatterns = [
     path('purchases/', views.voucher_list_view, {'voucher_type': 'purchases'}, name='purchases_list'),
     path('purchases/new/', views.voucher_create_view, {'voucher_type': 'purchases'}, name='purchases_create'),
     
+    path('journals/', views.voucher_list_view, {'voucher_type': 'journal'}, name='journal_list'),
+    path('journals/new/', views.voucher_create_view, {'voucher_type': 'journal'}, name='journal_create'),
+    
     # AI Invoice Scanner
     path('scan/', views.voucher_scan_view, name='voucher_scan'),
     path('scan/api/', views.voucher_scan_api, name='voucher_scan_api'),
