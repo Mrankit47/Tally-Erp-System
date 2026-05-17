@@ -13,3 +13,4 @@ requests==2.33.1
 python-dateutil==2.9.0
 pytesseract==0.3.13
 pypdf
+google-generativeai

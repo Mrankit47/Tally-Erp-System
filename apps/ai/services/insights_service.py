@@ -2,7 +2,7 @@ import os
 import logging
 from django.core.cache import cache
 from django.utils import timezone
-from groq import Groq
+from .router import ai_router
 from .analytics_service import (
     calculate_revenue_metrics,
     calculate_expense_metrics,
@@ -104,12 +104,8 @@ Medium-severity warnings count: {len([r for r in risks if r['severity'] == 'MEDI
 Low-severity warnings count: {len([r for r in risks if r['severity'] == 'LOW'])}
 """
 
-        # 3. Call Groq for human-readable audit reports
-        api_key = os.environ.get("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY is not configured.")
-
-        client = Groq(api_key=api_key)
+        # 3. Call AI Router for human-readable audit reports via DeepSeek
+        logger.debug("Routing insights summary request to AI router for 'finance' task.")
         
         system_prompt = """You are a highly experienced Senior Chartered Accountant, Corporate Auditor, and ERP Business Intelligence consultant.
 Your goal is to inspect the aggregated financial metrics and programmatic risk alerts compiled by the ERP and draft an executive financial dashboard report.
@@ -126,20 +122,13 @@ Follow these strict output guidelines:
 4. Always reference specific figures from the metrics provided. Do not invent or guess information.
 """
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"ERP AGGREGATED METRICS:\n{agg_data}"}
-        ]
-
-        logger.debug("Requesting insights summary from Groq.")
-        response = client.chat.completions.create(  # type: ignore
-            model="llama-3.1-8b-instant",  # Stable model with rapid response times
-            messages=messages,
+        ai_commentary = ai_router.route_request(
+            task="finance",
+            system_prompt=system_prompt,
+            user_prompt=f"ERP AGGREGATED METRICS:\n{agg_data}",
             temperature=0.2,
             max_tokens=1500
         )
-
-        ai_commentary = response.choices[0].message.content.strip()
 
         payload = {
             'metrics': {
@@ -182,6 +171,6 @@ Follow these strict output guidelines:
 
         return {
             'metrics': fallback_metrics,
-            'ai_insights': "### Executive Financial Summary\nError communicating with Groq API. Real-time statistical metrics continue to function, but AI narrative insights are temporarily unavailable.",
+            'ai_insights': "### Executive Financial Summary\nError communicating with AI Router. Real-time statistical metrics continue to function, but AI narrative insights are temporarily unavailable.",
             'timestamp': timezone.now().isoformat()
         }

@@ -14,9 +14,26 @@ def audit_company_vouchers_for_risks(company) -> list:
     """
     alerts = []
     try:
+        from voucher.models import AuditRiskResolution
+        from uuid import UUID
+
         vouchers = Voucher.objects.filter(company=company)
         if not vouchers.exists():
             return []
+
+        # Load resolved risks for the company
+        resolved = set(
+            AuditRiskResolution.objects.filter(company=company).values_list('voucher_id', 'risk_type')
+        )
+
+        def add_alert(alert):
+            try:
+                v_uuid = UUID(alert['id'])
+            except (ValueError, TypeError):
+                v_uuid = alert['id']
+            
+            if (v_uuid, alert['risk_type']) not in resolved:
+                alerts.append(alert)
 
         # 1. Flag High-Value Vouchers
         avg_amt_query = VoucherEntry.objects.filter(
@@ -32,7 +49,7 @@ def audit_company_vouchers_for_risks(company) -> list:
         ).select_related('voucher')[:5]
 
         for entry in high_val_vouchers:
-            alerts.append({
+            add_alert({
                 'id': str(entry.voucher.id),
                 'risk_type': 'ANOMALY',
                 'title': 'Unusually Large Transaction',
@@ -63,7 +80,7 @@ def audit_company_vouchers_for_risks(company) -> list:
             if key in seen:
                 duplicate_v = seen[key]
                 if entry.voucher.number != duplicate_v.number:
-                    alerts.append({
+                    add_alert({
                         'id': str(entry.voucher.id),
                         'risk_type': 'DUPLICATE',
                         'title': 'Potential Duplicate Voucher',
@@ -82,7 +99,7 @@ def audit_company_vouchers_for_risks(company) -> list:
                 # Convert timezone aware datetime to local time
                 local_time = timezone.localtime(created_at).time()
                 if local_time < time(8, 0) or local_time > time(21, 0):
-                    alerts.append({
+                    add_alert({
                         'id': str(v.id),
                         'risk_type': 'COMPLIANCE',
                         'title': 'Off-Hours Transaction Logging',
@@ -95,7 +112,7 @@ def audit_company_vouchers_for_risks(company) -> list:
         empty_narrations = Voucher.objects.filter(company=company, narration__isnull=True) | \
                            Voucher.objects.filter(company=company, narration="")
         for v in empty_narrations:
-            alerts.append({
+            add_alert({
                 'id': str(v.id),
                 'risk_type': 'AUDIT',
                 'title': 'Empty Bookkeeping Narration',

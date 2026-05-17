@@ -1,22 +1,18 @@
-import os
-import json
 import logging
-from groq import Groq
+from .router import ai_router
 
 logger = logging.getLogger('apps.ai')
 
-def ask_ai(message: str, company, context_data: str) -> str:
+def ask_ai(message: str, company, context_data: str, language: str = 'English') -> str:
     """
-    Sends a message to the Groq API using the official SDK.
+    Sends a message to the AI Chatbot using the centralized AI Router.
     """
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key or api_key == 'your_api_key_here':
-        logger.error("GROQ_API_KEY is not set correctly.")
-        return "I am currently unable to process your request due to missing API configuration."
-
     try:
-        client = Groq(api_key=api_key)
-        
+        if language.lower() == 'hinglish':
+            lang_instruction = "RESPOND STRICTLY IN HINGLISH (Hindi/English mix written in Roman script, e.g., 'Aapka total profit ₹50,000 hai aur expenses ₹20,000 hain, toh net profit kafi achha chal raha hai.'). NEVER use Devanagari script or Hindi letters. Output the entire response in clean, conversational Hinglish."
+        else:
+            lang_instruction = f"RESPOND STRICTLY IN THE FOLLOWING LANGUAGE: {language}. Write the entire reply using this language (e.g., if language is Hindi, output in Hindi script; if Tamil, in Tamil script; if Marathi, in Marathi script; etc.). Keep all ERP numbers, calculations, and concepts accurate, but translate the explanation completely."
+
         system_prompt = f"""You are a friendly, professional ERP financial assistant specialized in accounting, GST, invoices, and business insights.
 
 RULES:
@@ -26,6 +22,7 @@ RULES:
 4. NEVER mention SQL, databases, memory snapshots, or how you got the data.
 5. Be conversational, polite, and clear. Use Markdown for formatting (bolding, lists).
 6. If the user asks something completely unrelated to business, accounting, or the ERP, politely decline.
+7. {lang_instruction}
 """
 
         user_content = message
@@ -36,23 +33,18 @@ RULES:
 [USER QUESTION]
 {message}"""
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content}
-        ]
+        logger.debug("Routing chat request to AI router for 'chat' task.")
         
-        logger.debug(f"Sending request to Groq with model llama-3.1-8b-instant")
-        
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages,
-            temperature=0.3, # Low temp for factual financial answers
-            max_tokens=1024,
+        reply = ai_router.route_request(
+            task="chat",
+            system_prompt=system_prompt,
+            user_prompt=user_content,
+            temperature=0.3,
+            max_tokens=1024
         )
         
-        reply = response.choices[0].message.content.strip()
         return reply
 
     except Exception as e:
-        logger.error(f"Unexpected error in ask_ai: {e}")
+        logger.error(f"Unexpected error in ask_ai: {e}", exc_info=True)
         return "Sorry, I encountered an error while processing your request with the AI service."
