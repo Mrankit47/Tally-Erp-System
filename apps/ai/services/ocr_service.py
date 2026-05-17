@@ -6,12 +6,18 @@ import pypdf
 
 logger = logging.getLogger('apps.ai')
 
-# Explicitly configure local Windows Tesseract executable path
-TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-if os.path.exists(TESSERACT_PATH):
-    pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+import platform
+
+# Explicitly configure Tesseract executable path based on operating system
+if platform.system() == 'Windows':
+    TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.exists(TESSERACT_PATH):
+        pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+    else:
+        logger.warning(f"Tesseract executable not found on Windows at: {TESSERACT_PATH}. Relying on system environment PATH.")
 else:
-    logger.warning(f"Tesseract executable not found at specified path: {TESSERACT_PATH}. Relying on system environment PATH.")
+    # On Linux/macOS (e.g., Render), tesseract is installed globally and accessible on system PATH.
+    logger.info("Non-Windows OS detected (Linux/Render). Relying on system environment PATH for Tesseract.")
 
 def extract_text_from_file(file_obj, filename: str) -> str:
     """
