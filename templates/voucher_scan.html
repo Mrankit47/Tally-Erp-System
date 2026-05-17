@@ -377,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(interval);
             processingCard.classList.add('hidden');
             scannerBar.classList.add('hidden');
-            alert(error.message || 'Error occurred while processing invoice.');
+            showModalAlert(error.message || 'Error occurred while processing invoice.', "Scan Error", "error");
             resetWorkspace();
         });
     }
@@ -570,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         if (validationError || !itemsList.length) {
-            alert('Please specify at least one valid Stock Item with a positive quantity.');
+            showModalAlert('Please specify at least one valid Stock Item with a positive quantity.', "Validation Error", "error");
             return;
         }
 
@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Confirm & Post to ERP';
-            alert(err.message || 'Error occurred while recording voucher.');
+            showModalAlert(err.message || 'Error occurred while recording voucher.', "Save Error", "error");
         });
     });
 

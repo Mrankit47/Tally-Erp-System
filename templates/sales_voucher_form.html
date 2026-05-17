@@ -257,7 +257,7 @@
             const partyId = document.getElementById('party-select').value;
             const salesLedgerId = document.getElementById('sales-ledger-select').value;
             if (!partyId || !salesLedgerId) {
-                alert("Please select Party and Sales Ledger.");
+                showModalAlert("Please select Party and Sales Ledger.", "Validation Error", "error");
                 e.preventDefault();
                 return;
             }

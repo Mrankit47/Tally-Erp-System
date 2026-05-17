@@ -155,7 +155,7 @@
         document.getElementById('payment-form').addEventListener('submit', function(e) {
             const accountId = document.getElementById('account-select').value;
             if (!accountId) {
-                alert("Please select the Cash/Bank account.");
+                showModalAlert("Please select the Cash/Bank account.", "Validation Error", "error");
                 e.preventDefault();
                 return;
             }

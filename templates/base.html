@@ -333,6 +333,54 @@
         </div>
     </div>
 
+    <!-- Global UI Modals -->
+    <!-- Alert Modal -->
+    <div id="global-alert-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-200 opacity-0" id="global-alert-backdrop" onclick="closeModalAlert()"></div>
+        
+        <!-- Modal Card -->
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 transform transition-all duration-200 scale-95 opacity-0" id="global-alert-card">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center flex-shrink-0" id="global-alert-icon-container">
+                    <svg class="w-5 h-5 text-brand-500" id="global-alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900" id="global-alert-title">Notice</h3>
+            </div>
+            <p class="text-sm text-slate-600 mb-6" id="global-alert-message"></p>
+            <div class="flex justify-end">
+                <button onclick="closeModalAlert()" class="px-5 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 focus:ring-4 focus:ring-brand-100 transition-all">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="global-confirm-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-200 opacity-0" id="global-confirm-backdrop" onclick="closeModalConfirm(false)"></div>
+        
+        <!-- Modal Card -->
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 transform transition-all duration-200 scale-95 opacity-0" id="global-confirm-card">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900" id="global-confirm-title">Confirm Action</h3>
+            </div>
+            <p class="text-sm text-slate-600 mb-6" id="global-confirm-message"></p>
+            <div class="flex items-center justify-end gap-3">
+                <button onclick="closeModalConfirm(false)" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-all">
+                    Cancel
+                </button>
+                <button onclick="closeModalConfirm(true)" class="px-5 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 focus:ring-4 focus:ring-brand-100 transition-all">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
@@ -374,6 +422,84 @@
                 toast.classList.add('opacity-0', 'translate-y-2');
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
+        }
+
+        // ─── Global Custom Modals ───
+        
+        // Alert Modal
+        function showModalAlert(message, title = 'Notice', type = 'info') {
+            const modal = document.getElementById('global-alert-modal');
+            const backdrop = document.getElementById('global-alert-backdrop');
+            const card = document.getElementById('global-alert-card');
+            
+            document.getElementById('global-alert-message').textContent = message;
+            document.getElementById('global-alert-title').textContent = title;
+            
+            const iconContainer = document.getElementById('global-alert-icon-container');
+            const icon = document.getElementById('global-alert-icon');
+            
+            if (type === 'error') {
+                iconContainer.className = 'w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0';
+                icon.className = 'w-5 h-5 text-red-500';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+            } else {
+                iconContainer.className = 'w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center flex-shrink-0';
+                icon.className = 'w-5 h-5 text-brand-500';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+            }
+
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            backdrop.classList.remove('opacity-0');
+            card.classList.remove('scale-95', 'opacity-0');
+        }
+
+        function closeModalAlert() {
+            const modal = document.getElementById('global-alert-modal');
+            const backdrop = document.getElementById('global-alert-backdrop');
+            const card = document.getElementById('global-alert-card');
+            
+            backdrop.classList.add('opacity-0');
+            card.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        // Confirm Modal
+        let currentConfirmCallback = null;
+        
+        function showModalConfirm(message, title = 'Confirm Action', onConfirm) {
+            const modal = document.getElementById('global-confirm-modal');
+            const backdrop = document.getElementById('global-confirm-backdrop');
+            const card = document.getElementById('global-confirm-card');
+            
+            document.getElementById('global-confirm-message').textContent = message;
+            document.getElementById('global-confirm-title').textContent = title;
+            currentConfirmCallback = onConfirm;
+
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            backdrop.classList.remove('opacity-0');
+            card.classList.remove('scale-95', 'opacity-0');
+        }
+
+        function closeModalConfirm(isConfirmed) {
+            const modal = document.getElementById('global-confirm-modal');
+            const backdrop = document.getElementById('global-confirm-backdrop');
+            const card = document.getElementById('global-confirm-card');
+            
+            backdrop.classList.add('opacity-0');
+            card.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                if (isConfirmed && currentConfirmCallback) {
+                    currentConfirmCallback();
+                }
+                currentConfirmCallback = null;
+            }, 200);
         }
 
         // Setup CSRF header for all fetch requests wrapper
