@@ -287,7 +287,7 @@ def calculate_approval_metrics(company) -> dict:
         
         pending_count = vouchers.filter(status=VoucherStatus.PENDING).count()
         approved_count = vouchers.filter(status=VoucherStatus.APPROVED).count()
-        rejected_count = vouchers.filter(status=VoucherStatus.REJECTED).count()
+        rejected_count = 0
         
         return {
             'pending_approvals': pending_count,
@@ -308,8 +308,8 @@ def calculate_inventory_metrics(company) -> dict:
         # Low Stock (threshold < 10 units)
         low_stock_items = []
         for item in stock_items:
-            # Check quantity (from custom db calculation or balance)
-            qty = float(getattr(item, 'opening_balance_qty', 0) or 0)
+            # Check quantity using the dynamically calculated property
+            qty = float(item.current_quantity)
             if qty < 10:
                 low_stock_items.append({
                     'item_name': item.name,

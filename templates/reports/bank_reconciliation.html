@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load currency_tags %}
+
+{% block title %}AI Bank Sync & Reconciliation{% endblock %}
+{% block page_title %}AI Bank Sync{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-8 animate-fadeIn">
+    <!-- Header Block -->
+    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 text-[10px] font-black uppercase bg-brand-50 text-brand-600 rounded-full border border-brand-100 tracking-wider">PREMIUM TOOL</span>
+                <span class="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 tracking-tight mt-1">AI Bank Reconciliation</h2>
+            <p class="text-xs text-slate-400 font-medium mt-1">Upload digital bank statements (SBI, HDFC, ICICI, etc.) and let AI auto-categorize and map entries directly to local ledgers.</p>
+        </div>
+        
+        <!-- Bank Account Selector -->
+        <div class="w-full md:w-72">
+            <label for="bankLedgerSelect" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Reconcile Against Bank A/c</label>
+            <select id="bankLedgerSelect" class="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500 font-bold text-slate-700">
+                {% for bl in bank_ledgers %}
+                    <option value="{{ bl.id }}">{{ bl.name }}</option>
+                {% empty %}
+                    <option value="">No Bank Ledgers Found</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Drag & Drop Zone -->
+    <div id="dropzoneContainer" class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+        <div id="dropzone" class="border-2 border-dashed border-slate-200 hover:border-brand-500 hover:bg-brand-50/10 rounded-2xl p-12 text-center transition-all cursor-pointer group">
+            <input type="file" id="statementFile" class="hidden" accept=".pdf">
+            <div class="max-w-md mx-auto flex flex-col items-center gap-4">
+                <div class="p-4 bg-slate-50 group-hover:bg-brand-50 rounded-full text-slate-400 group-hover:text-brand-500 transition-all duration-300">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-700 tracking-tight">Upload Bank Statement</h3>
+                    <p class="text-xs text-slate-400 font-medium mt-1">Drag and drop your digital bank statement PDF here, or <span class="text-brand-600 font-black group-hover:underline">browse files</span></p>
+                </div>
+                <div class="text-[10px] text-slate-350 font-bold uppercase tracking-widest">Supports digital PDFs up to 10MB</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Loader (Hidden by default) -->
+    <div id="loader" class="hidden bg-white p-12 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-6">
+        <div class="relative w-16 h-16">
+            <!-- Sleek multi-layered modern spinner -->
+            <div class="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-brand-600 border-t-transparent animate-spin"></div>
+        </div>
+        <div class="text-center">
+            <h3 class="text-sm font-black text-slate-700 tracking-tight">Extracting & Categorizing Transactions</h3>
+            <p class="text-xs text-slate-400 font-medium mt-1.5">Gemini AI is parsing the statement layout and automatically mapping descriptions to your local accounts...</p>
+        </div>
+    </div>
+
+    <!-- Interactive Transactions Table (Hidden by default) -->
+    <div id="resultsContainer" class="hidden bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        <!-- Review Header Block -->
+        <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    Review Extracted Transactions
+                    <span id="txCountBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">0 Items</span>
+                </h3>
+                <p class="text-xs text-slate-400 font-medium">Verify AI mappings and select the transactions you want to post as double-entry ledger entries.</p>
+            </div>
+            
+            <!-- Real-time Summary Cards -->
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="px-4 py-2.5 bg-rose-50/50 border border-rose-100/50 rounded-xl text-center flex-1 md:flex-initial min-w-[120px]">
+                    <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Payments</div>
+                    <div id="summaryPayments" class="text-xs font-black text-rose-600 font-mono mt-0.5">₹0.00</div>
+                </div>
+                <div class="px-4 py-2.5 bg-emerald-50/50 border border-emerald-100/50 rounded-xl text-center flex-1 md:flex-initial min-w-[120px]">
+                    <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Receipts</div>
+                    <div id="summaryReceipts" class="text-xs font-black text-emerald-600 font-mono mt-0.5">₹0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-100 text-left bg-slate-50/30">
+                        <th class="p-4 w-12 text-center">
+                            <input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAll()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                        </th>
+                        <th class="p-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Date</th>
+                        <th class="p-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Description</th>
+                        <th class="p-4 text-right text-[10px] font-black text-slate-450 uppercase tracking-wider">Withdrawal (Dr)</th>
+                        <th class="p-4 text-right text-[10px] font-black text-slate-450 uppercase tracking-wider">Deposit (Cr)</th>
+                        <th class="p-4 text-center text-[10px] font-black text-slate-450 uppercase tracking-wider">Voucher Type</th>
+                        <th class="p-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Mapped Ledger (Double Entry Account)</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionRows" class="divide-y divide-slate-50">
+                    <!-- Loaded dynamically via JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Action Panel -->
+        <div class="p-6 border-t border-slate-100 bg-slate-50/20 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <button onclick="resetReconciliation()" class="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-xl border border-slate-200 transition-all cursor-pointer">
+                    Upload Another File
+                </button>
+            </div>
+            
+            <button onclick="postReconciledTransactions()" id="postBtn" class="w-full md:w-auto px-6 py-3 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                Bulk Import & Post to Tally ERP
+            </button>
+        </div>
+    </div>
+</div>
+
+<script id="ledgers-data" type="application/json">{{ ledgers_json|safe }}</script>
+
+<script>
+    // Ledgers lookup dataset parsed from context
+    const companyLedgers = JSON.parse(document.getElementById('ledgers-data').textContent);
+    let extractedTransactions = [];
+
+    // Setup drag and drop
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("statementFile");
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    
+    dropzone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropzone.classList.add("border-brand-500", "bg-brand-50/20");
+    });
+
+    dropzone.addEventListener("dragleave", () => {
+        dropzone.classList.remove("border-brand-500", "bg-brand-50/20");
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropzone.classList.remove("border-brand-500", "bg-brand-50/20");
+        if (e.dataTransfer.files.length > 0) {
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    function handleFileSelect(file) {
+        if (file.type !== "application/pdf") {
+            alert("Error: Please upload a digital bank statement PDF.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        // Hide dropzone, show loader
+        document.getElementById("dropzoneContainer").classList.add("hidden");
+        document.getElementById("loader").classList.remove("hidden");
+
+        fetch("{% url 'reports:bank_reconciliation_upload_api' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: formData
+        })
+        .then(async response => {
+            if (!response.ok) {
+                let errMsg = "AI statement layout parsing failed.";
+                try {
+                    const errData = await response.json();
+                    if (errData && errData.error) errMsg = errData.error;
+                } catch(e) {}
+                throw new Error(errMsg);
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById("loader").classList.add("hidden");
+            if (data.status === "success" && data.transactions.length > 0) {
+                extractedTransactions = data.transactions;
+                renderReconciliationTable();
+            } else {
+                alert("No transactions found in this statement PDF.");
+                resetReconciliation();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error parsing bank statement PDF: " + err.message);
+            resetReconciliation();
+        });
+    }
+
+    function renderReconciliationTable() {
+        const tbody = document.getElementById("transactionRows");
+        tbody.innerHTML = "";
+
+        extractedTransactions.forEach((tx, idx) => {
+            // Build ledger options with suggestion preselected
+            let selectOptions = "";
+            companyLedgers.forEach(l => {
+                const isSelected = l.id === tx.suggested_ledger_id ? "selected" : "";
+                selectOptions += `<option value="${l.id}" ${isSelected}>${l.name}</option>`;
+            });
+
+            const debitVal = tx.debit > 0 ? `₹${tx.debit.toLocaleString('en-IN', {minimumFractionDigits:2})}` : "-";
+            const creditVal = tx.credit > 0 ? `₹${tx.credit.toLocaleString('en-IN', {minimumFractionDigits:2})}` : "-";
+
+            const borderBadge = tx.confidence === "HIGH" 
+                ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
+                : "bg-amber-50 text-amber-600 border border-amber-100";
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50/40 text-xs transition-colors" id="row-${idx}">
+                    <td class="p-4 text-center">
+                        <input type="checkbox" checked onchange="updateSummary()" class="tx-checkbox rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer" data-idx="${idx}">
+                    </td>
+                    <td class="p-4 font-mono font-bold text-slate-700 whitespace-nowrap">${tx.date}</td>
+                    <td class="p-4 font-medium text-slate-650 max-w-[280px] truncate" title="${tx.description}">${tx.description}</td>
+                    <td class="p-4 text-right font-mono font-bold text-rose-600">${debitVal}</td>
+                    <td class="p-4 text-right font-mono font-bold text-emerald-600">${creditVal}</td>
+                    <td class="p-4 text-center">
+                        <select onchange="updateVoucherType(${idx}, this.value)" class="text-[10px] font-black uppercase p-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-500 cursor-pointer text-slate-600">
+                            <option value="PAYMENT" ${tx.suggested_voucher_type === 'PAYMENT' ? 'selected' : ''}>Payment (Wdl)</option>
+                            <option value="RECEIPT" ${tx.suggested_voucher_type === 'RECEIPT' ? 'selected' : ''}>Receipt (Dep)</option>
+                        </select>
+                    </td>
+                    <td class="p-4 flex items-center gap-2">
+                        <select onchange="updateLedger(${idx}, this.value)" class="w-full text-[11px] p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500 font-bold text-slate-700">
+                            ${selectOptions}
+                        </select>
+                        <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${borderBadge} whitespace-nowrap" title="AI Ledger Mapping Confidence">
+                            ${tx.confidence}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("txCountBadge").innerText = `${extractedTransactions.length} Items`;
+        document.getElementById("resultsContainer").classList.remove("hidden");
+        updateSummary();
+    }
+
+    function toggleSelectAll() {
+        const isChecked = document.getElementById("selectAllCheckbox").checked;
+        document.querySelectorAll(".tx-checkbox").forEach(cb => cb.checked = isChecked);
+        updateSummary();
+    }
+
+    function updateVoucherType(idx, val) {
+        extractedTransactions[idx].suggested_voucher_type = val;
+        updateSummary();
+    }
+
+    function updateLedger(idx, val) {
+        extractedTransactions[idx].suggested_ledger_id = val;
+    }
+
+    function updateSummary() {
+        let totalPayments = 0;
+        let totalReceipts = 0;
+
+        document.querySelectorAll(".tx-checkbox").forEach(cb => {
+            if (cb.checked) {
+                const idx = parseInt(cb.dataset.idx);
+                const tx = extractedTransactions[idx];
+                if (tx.suggested_voucher_type === "PAYMENT") {
+                    totalPayments += tx.debit;
+                } else {
+                    totalReceipts += tx.credit;
+                }
+            }
+        });
+
+        document.getElementById("summaryPayments").innerText = `₹${totalPayments.toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+        document.getElementById("summaryReceipts").innerText = `₹${totalReceipts.toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+    }
+
+    function resetReconciliation() {
+        document.getElementById("statementFile").value = "";
+        extractedTransactions = [];
+        document.getElementById("resultsContainer").classList.add("hidden");
+        document.getElementById("loader").classList.add("hidden");
+        document.getElementById("dropzoneContainer").classList.remove("hidden");
+    }
+
+    function postReconciledTransactions() {
+        const bankLedgerId = document.getElementById("bankLedgerSelect").value;
+        if (!bankLedgerId) {
+            alert("Error: Please select the local Bank Account Ledger to sync against.");
+            return;
+        }
+
+        const transactionsToPost = [];
+        document.querySelectorAll(".tx-checkbox").forEach(cb => {
+            if (cb.checked) {
+                const idx = parseInt(cb.dataset.idx);
+                transactionsToPost.push(extractedTransactions[idx]);
+            }
+        });
+
+        if (transactionsToPost.length === 0) {
+            alert("Please select at least one transaction row to post.");
+            return;
+        }
+
+        const postBtn = document.getElementById("postBtn");
+        postBtn.disabled = true;
+        postBtn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Posting Transactions...
+        `;
+
+        fetch("{% url 'reports:bank_reconciliation_post_api' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                bank_ledger_id: bankLedgerId,
+                transactions: transactionsToPost
+            })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Failed to post reconciliation vouchers.");
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === "success") {
+                alert("Success: " + data.message);
+                window.location.href = "{% url 'payments_list' %}"; // Redirect to Voucher List page to review posted items!
+            } else {
+                alert("Error: " + data.error);
+                postBtn.disabled = false;
+                postBtn.innerHTML = `Bulk Import & Post to Tally ERP`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error posting transactions: " + err.message);
+            postBtn.disabled = false;
+            postBtn.innerHTML = `Bulk Import & Post to Tally ERP`;
+        });
+    }
+</script>
+
+<style>
+    /* Premium micro-animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+        animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>
+{% endblock %}

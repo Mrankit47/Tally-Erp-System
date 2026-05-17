@@ -128,12 +128,15 @@ def generate_profit_and_loss(company):
     incomes = tb['data']['Income']
     expenses = tb['data']['Expenses']
     
-    # In trial balance: 
-    # Credit means negative balance. Since Income typically has Credit balance, we sum (Cr - Dr).
-    total_income = sum(item['credit'] - item['debit'] for item in incomes)
-    
-    # Expense typically has Debit balance, so we sum (Dr - Cr).
-    total_expenses = sum(item['debit'] - item['credit'] for item in expenses)
+    # Calculate and store individual ledger amounts
+    for item in incomes:
+        item['amount'] = item['credit'] - item['debit']
+        
+    for item in expenses:
+        item['amount'] = item['debit'] - item['credit']
+
+    total_income = sum(item['amount'] for item in incomes)
+    total_expenses = sum(item['amount'] for item in expenses)
     
     net_result = total_income - total_expenses
     is_profit = (net_result >= 0)

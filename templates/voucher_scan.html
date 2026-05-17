@@ -119,13 +119,13 @@
 
                 <!-- 1. GENERAL INFO SECTION -->
                 <div class="bg-white rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] p-8 space-y-8">
-                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">1. General Invoice Header</h3>
+                    <h3 id="ui-header-general" class="text-xs font-black text-slate-400 uppercase tracking-widest">1. General Invoice Header</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         
                         <!-- Supplier (Sundry Creditor) Dropdown -->
                         <div class="space-y-2">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Party Name (Creditor)</label>
+                            <label id="ui-label-party" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Party Name (Creditor)</label>
                             <select id="form-vendor-select" class="block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-3.5 px-4 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" required>
                                 <option value="">-- Choose Creditor --</option>
                             </select>
@@ -134,7 +134,7 @@
 
                         <!-- Purchase Ledger -->
                         <div class="space-y-2">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Purchase Ledger</label>
+                            <label id="ui-label-ledger" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Purchase Ledger</label>
                             <select id="form-purchase-select" class="block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-3.5 px-4 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" required>
                             </select>
                         </div>
@@ -154,7 +154,7 @@
                 </div>
 
                 <!-- 2. PARTICULARS / INVENTORY ITEMS TABLE -->
-                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] overflow-hidden">
+                <div id="section-items" class="bg-white rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] overflow-hidden">
                     <div class="px-8 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                         <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">2. Extracted Line Items</h3>
                         <button type="button" id="review-add-item-btn" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 uppercase tracking-widest transition-colors">
@@ -181,8 +181,8 @@
                     </div>
                 </div>
 
-                <!-- 3. TAXES & TOTALS -->
-                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] p-8 space-y-6">
+                <!-- 3. TAXES & Calculations -->
+                <div id="section-taxes" class="bg-white rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] p-8 space-y-6">
                     <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">3. Taxes & Calculations</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -204,16 +204,22 @@
                             <input type="number" step="0.01" id="form-igst" class="tax-adjust block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" value="0.00">
                         </div>
                     </div>
+                </div>
 
-                    <!-- Computed Subtotal and Totals -->
-                    <div class="pt-6 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <!-- 4. NARRATION & GRAND TOTAL -->
+                <div id="section-totals" class="bg-white rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] p-8 space-y-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div class="flex-1">
                             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Transaction Narration</label>
                             <textarea id="form-narration" rows="2" class="block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-3 px-4 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="Enter ledger explanation..."></textarea>
                         </div>
                         <div class="text-right">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gross Total Amount Payable</p>
-                            <p class="text-4xl font-black text-slate-900 mt-1">₹ <span id="form-grand-total">0.00</span></p>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gross Total Amount</p>
+                            <div class="flex items-center justify-end gap-2 mt-1">
+                                <span class="text-2xl font-black text-slate-900">₹</span>
+                                <input type="number" step="0.01" id="form-manual-total" class="hidden w-40 text-right rounded-2xl border-slate-200 bg-slate-50/50 py-2 px-3 text-2xl font-black focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                <p id="form-computed-total-wrapper" class="text-4xl font-black text-slate-900"><span id="form-grand-total">0.00</span></p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -268,6 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let stockItemsList = [];
     let purchaseLedgersList = [];
     let taxLedgersList = [];
+    let currentDocumentType = 'Purchase';
 
     // Drag-over styling effects
     dropZone.addEventListener('dragover', (e) => {
@@ -361,10 +368,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRFToken': '{{ csrf_token }}'
             }
         })
-        .then(response => {
+        .then(async response => {
             clearInterval(interval);
             if (!response.ok) {
-                throw new Error('Analysis failed. Please ensure file size is within limits.');
+                let errMsg = 'Analysis failed. Please ensure file size is within limits.';
+                try {
+                    const errData = await response.json();
+                    if (errData.error) errMsg = errData.error;
+                } catch(e) {}
+                throw new Error(errMsg);
             }
             return response.json();
         })
@@ -387,6 +399,26 @@ document.addEventListener('DOMContentLoaded', function() {
         scanReviewForm.classList.remove('hidden');
 
         const ext = data.extracted;
+        currentDocumentType = data.document_type || 'Purchase';
+
+        // Update UI Labels dynamically
+        document.getElementById('ui-header-general').textContent = `1. General ${currentDocumentType} Header`;
+        document.getElementById('ui-label-party').textContent = `Party Name (${currentDocumentType === 'Sales' ? 'Debtor' : (currentDocumentType === 'Purchase' ? 'Creditor' : 'Party')})`;
+        document.getElementById('ui-label-ledger').textContent = (currentDocumentType === 'Receipt' || currentDocumentType === 'Payment') ? 'Bank/Cash Ledger' : `${currentDocumentType} Ledger`;
+        
+        // Hide/Show sections based on type
+        if (currentDocumentType === 'Receipt' || currentDocumentType === 'Payment') {
+            document.getElementById('section-items').classList.add('hidden');
+            document.getElementById('section-taxes').classList.add('hidden');
+            document.getElementById('form-computed-total-wrapper').classList.add('hidden');
+            document.getElementById('form-manual-total').classList.remove('hidden');
+            document.getElementById('form-manual-total').value = parseFloat(ext.total_amount || 0).toFixed(2);
+        } else {
+            document.getElementById('section-items').classList.remove('hidden');
+            document.getElementById('section-taxes').classList.remove('hidden');
+            document.getElementById('form-computed-total-wrapper').classList.remove('hidden');
+            document.getElementById('form-manual-total').classList.add('hidden');
+        }
 
         // Set global references
         suppliersList = data.creditors || [];
@@ -441,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ext.items.forEach(item => {
                 addNewItemRow(item);
             });
-        } else {
+        } else if (currentDocumentType !== 'Receipt' && currentDocumentType !== 'Payment') {
             addNewItemRow(); // Add empty row fallback
         }
 
@@ -454,9 +486,9 @@ document.addEventListener('DOMContentLoaded', function() {
         row.className = 'item-row group hover:bg-slate-50/50 transition-colors';
         
         const selectedId = itemData ? (itemData.matched_id || '') : '';
-        const qty = itemData ? parseFloat(itemData.quantity || 1) : '';
-        const rate = itemData ? parseFloat(itemData.rate || 0) : '';
-        const amt = itemData ? parseFloat(itemData.amount || 0) : '';
+        const qty = itemData ? parseFloat(itemData.quantity || 1) : 1;
+        const rate = itemData ? parseFloat(itemData.rate || 0) : 0;
+        const amt = itemData ? parseFloat(itemData.amount || 0) : 0;
         const hsn = itemData ? (itemData.hsn_code || '') : '';
 
         row.innerHTML = `
@@ -548,42 +580,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const itemsList = [];
         let validationError = false;
-
-        document.querySelectorAll('#review-items-container .item-row').forEach(row => {
-            const stockItemId = row.querySelector('.row-stock-item').value;
-            const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
-            const rate = parseFloat(row.querySelector('.row-rate').value) || 0;
-            const amt = qty * rate;
-            const hsn = row.querySelector('.row-hsn-code').value;
-
-            if (stockItemId && qty > 0) {
-                itemsList.push({
-                    stock_item_id: stockItemId,
-                    quantity: qty,
-                    rate: rate,
-                    amount: amt,
-                    hsn_code: hsn
-                });
-            } else if (stockItemId) {
-                validationError = true;
-            }
-        });
-
-        if (validationError || !itemsList.length) {
-            showModalAlert('Please specify at least one valid Stock Item with a positive quantity.', "Validation Error", "error");
-            return;
-        }
-
         let totalAmount = 0;
         let subtotal = 0;
-        itemsList.forEach(i => subtotal += i.amount);
+        let cgst = 0, sgst = 0, igst = 0;
 
-        const cgst = parseFloat(document.getElementById('form-cgst').value) || 0;
-        const sgst = parseFloat(document.getElementById('form-sgst').value) || 0;
-        const igst = parseFloat(document.getElementById('form-igst').value) || 0;
-        totalAmount = subtotal + cgst + sgst + igst;
+        if (currentDocumentType === 'Receipt' || currentDocumentType === 'Payment') {
+            totalAmount = parseFloat(document.getElementById('form-manual-total').value) || 0;
+            if (totalAmount <= 0) {
+                showModalAlert('Please enter a valid total amount greater than 0.', "Validation Error", "error");
+                return;
+            }
+        } else {
+            document.querySelectorAll('#review-items-container .item-row').forEach(row => {
+                const stockItemId = row.querySelector('.row-stock-item').value;
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.row-rate').value) || 0;
+                const amt = qty * rate;
+                const hsn = row.querySelector('.row-hsn-code').value;
+
+                if (stockItemId && qty > 0) {
+                    itemsList.push({
+                        stock_item_id: stockItemId,
+                        quantity: qty,
+                        rate: rate,
+                        amount: amt,
+                        hsn_code: hsn
+                    });
+                } else if (stockItemId) {
+                    validationError = true;
+                }
+            });
+
+            if (validationError || !itemsList.length) {
+                showModalAlert('Please specify at least one valid Stock Item with a positive quantity.', "Validation Error", "error");
+                return;
+            }
+
+            itemsList.forEach(i => subtotal += i.amount);
+
+            cgst = parseFloat(document.getElementById('form-cgst').value) || 0;
+            sgst = parseFloat(document.getElementById('form-sgst').value) || 0;
+            igst = parseFloat(document.getElementById('form-igst').value) || 0;
+            totalAmount = subtotal + cgst + sgst + igst;
+        }
 
         const payload = {
+            document_type: currentDocumentType,
             vendor_id: document.getElementById('form-vendor-select').value,
             purchase_ledger_id: document.getElementById('form-purchase-select').value,
             invoice_number: document.getElementById('form-invoice-number').value,
@@ -628,7 +670,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('modal-ok-btn').addEventListener('click', () => {
-        window.location.href = '{% url "purchases_list" %}';
+        if (currentDocumentType === 'Sales') {
+            window.location.href = '{% url "sales_list" %}';
+        } else if (currentDocumentType === 'Receipt') {
+            window.location.href = '{% url "receipts_list" %}';
+        } else if (currentDocumentType === 'Payment') {
+            window.location.href = '{% url "payments_list" %}';
+        } else {
+            window.location.href = '{% url "purchases_list" %}';
+        }
     });
 });
 </script>

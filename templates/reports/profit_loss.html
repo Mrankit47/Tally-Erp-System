@@ -82,8 +82,7 @@
                         {% for ledger in pl.incomes %}
                         <tr class="hover:bg-gray-50 transition-all duration-200 group">
                             <td class="px-6 py-3.5 text-gray-700 font-medium group-hover:text-emerald-600 transition-colors">{{ ledger.name }}</td>
-                            <!-- For income, valid amount is Credit - Debit -->
-                            <td class="px-6 py-3.5 text-gray-600 text-right font-mono font-medium">{% widthratio ledger.credit 1 1 as cr %}{% widthratio ledger.debit 1 1 as dr %}{{ ledger.credit|add:"-"|add:dr|indian_currency }}</td>
+                            <td class="px-6 py-3.5 text-gray-600 text-right font-mono font-medium">{{ ledger.amount|indian_currency }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -112,8 +111,7 @@
                         {% for ledger in pl.expenses %}
                         <tr class="hover:bg-gray-50 transition-all duration-200 group">
                             <td class="px-6 py-3.5 text-gray-700 font-medium group-hover:text-red-500 transition-colors">{{ ledger.name }}</td>
-                            <!-- For expense, valid amount is Debit - Credit -->
-                            <td class="px-6 py-3.5 text-gray-600 text-right font-mono font-medium">{% widthratio ledger.debit 1 1 as dr %}{% widthratio ledger.credit 1 1 as cr %}{{ ledger.debit|add:"-"|add:cr|indian_currency }}</td>
+                            <td class="px-6 py-3.5 text-gray-600 text-right font-mono font-medium">{{ ledger.amount|indian_currency }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

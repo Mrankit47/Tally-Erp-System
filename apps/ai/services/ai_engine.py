@@ -18,31 +18,116 @@ def detect_intent(message: str) -> str:
     """
     Keyword-based intent classifier.
     Categorizes the request to enrich the Groq prompt with precise aggregate metrics.
+    Supports English, Hindi, Tamil, Marathi, Gujarati, Bengali and phonetic Hinglish translations.
     """
     msg_lower = message.lower()
     
-    if any(kw in msg_lower for kw in ['gst', 'tax', 'cgst', 'sgst', 'igst', 'duties']):
+    # GST / Tax / Obligations
+    gst_kws = [
+        'gst', 'tax', 'cgst', 'sgst', 'igst', 'duties', 'कर', 'जीएसटी', 'வரி', 'tax'
+    ]
+    if any(kw in msg_lower for kw in gst_kws):
         return 'gst'
-    elif any(kw in msg_lower for kw in ['approve', 'pending', 'reject', 'approvals']):
+        
+    # Voucher approvals
+    appr_kws = [
+        'approve', 'pending', 'reject', 'approvals', 'पेंडिंग', 'मंजूर', 'नानामंजूर', 'ஒப்புதல்', 'approvals'
+    ]
+    if any(kw in msg_lower for kw in appr_kws):
         return 'approvals'
-    elif any(kw in msg_lower for kw in ['risk', 'anomaly', 'suspicious', 'duplicate', 'hour', 'audit', 'narration']):
+        
+    # Audit risk / anomalies
+    risk_kws = [
+        'risk', 'anomaly', 'suspicious', 'duplicate', 'hour', 'audit', 'narration', 'जोखिम', 'धोखाधड़ी', 'ऑडिट', 'அபாயம்'
+    ]
+    if any(kw in msg_lower for kw in risk_kws):
         return 'risk'
-    elif any(kw in msg_lower for kw in ['health', 'score', 'rating', 'swot', 'financial state']):
+        
+    # Financial Health Score
+    health_kws = [
+        'health', 'score', 'rating', 'swot', 'financial state', 'स्वास्थ्य', 'स्थिति', 'நிலை'
+    ]
+    if any(kw in msg_lower for kw in health_kws):
         return 'health'
-    elif any(kw in msg_lower for kw in ['forecast', 'predict', 'projection', 'next month', 'sma']):
+        
+    # Forecast / Predictions
+    forecast_kws = [
+        'forecast', 'predict', 'projection', 'next month', 'sma', 'पूर्वानुमान', 'भविष्यवाणी', 'முன்னறிவிப்பு'
+    ]
+    if any(kw in msg_lower for kw in forecast_kws):
         return 'forecast'
-    elif any(kw in msg_lower for kw in ['sale', 'revenue', 'income']):
+        
+    # Sales / Revenue
+    sales_kws = [
+        'sale', 'revenue', 'income', 'sales', 'turnover',
+        # Hindi & Hinglish
+        'बिक्री', 'सेल', 'राजस्व', 'आय', 'कमाई', 'bikri', 'sell', 'kamai',
+        # Marathi
+        'विक्री', 'उत्पन्न',
+        # Tamil
+        'விற்பனை', 'வருமானம்', 'virpanai', 'varumanam',
+        # Gujarati
+        'વેચાણ', 'આવક',
+        # Bengali
+        'বিক্রয়', 'আয়'
+    ]
+    if any(kw in msg_lower for kw in sales_kws):
         return 'sales'
-    elif any(kw in msg_lower for kw in ['expense', 'cost', 'spend', 'category']):
+        
+    # Expenses / Spendings
+    expense_kws = [
+        'expense', 'cost', 'spend', 'category', 'expenses', 'spending',
+        # Hindi & Hinglish
+        'खर्च', 'खर्चा', 'लागत', 'kharch', 'kharcha', 'lagat',
+        # Marathi
+        'खर्च',
+        # Tamil
+        'செலவு', 'செலவுகள்', 'celavu',
+        # Gujarati
+        'ખર્ચ',
+        # Bengali
+        'ব্যয়', 'খরচ'
+    ]
+    if any(kw in msg_lower for kw in expense_kws):
         return 'expense'
-    elif any(kw in msg_lower for kw in ['profit', 'loss', 'margin']):
+        
+    # Profit / Loss / Margins
+    profit_kws = [
+        'profit', 'loss', 'margin',
+        # Hindi & Hinglish
+        'लाभ', 'मुनाफा', 'नुकसान', 'हानि', 'प्रॉफिट', 'लॉस', 'faida', 'nuksan', 'profit',
+        # Marathi
+        'नफा', 'तोटा', 'nafa', 'tota',
+        # Tamil
+        'இலாபம்', 'நஷ்டம்', 'லாபம்', 'labam', 'nashtam',
+        # Gujarati
+        'નફો', 'નુકસાન',
+        # Bengali
+        'লাভ', 'লোকসান'
+    ]
+    if any(kw in msg_lower for kw in profit_kws):
         return 'profit'
-    elif any(kw in msg_lower for kw in ['invoice', 'bill', 'receipt']):
+        
+    # Invoices / Bills
+    invoice_kws = [
+        'invoice', 'bill', 'receipt', 'invoices', 'bills',
+        # Hindi & Hinglish
+        'विधेयक', 'बिल', 'रसीद', 'इनवॉइस', 'invois', 'receipts',
+        # Marathi
+        'बिल',
+        # Tamil
+        'பில்', 'ரசீது', 'invoices',
+        # Gujarati
+        'બિલ',
+        # Bengali
+        'বিল'
+    ]
+    if any(kw in msg_lower for kw in invoice_kws):
         return 'invoice'
-    
+        
     return 'general'
 
-def process_query(message: str, request=None) -> str:
+def process_query(message: str, request=None, language: str = 'English') -> str:
     """
     Orchestrates the AI request by detecting intent, extracting precise local metrics,
     and sending a factual context bundle to Groq.
@@ -51,7 +136,7 @@ def process_query(message: str, request=None) -> str:
         return "I need an active company context to provide financial insights."
         
     company = request.active_company
-    logger.info(f"Processing query for company {company.id}: {message}")
+    logger.info(f"Processing query for company {company.id} in language {language}: {message}")
     
     intent = detect_intent(message)
     logger.debug(f"Detected intent: {intent}")
@@ -89,5 +174,5 @@ def process_query(message: str, request=None) -> str:
         context_data = get_recent_invoices(company)
     
     # Send the combined message to the AI
-    final_response = ask_ai(message, company, context_data)
+    final_response = ask_ai(message, company, context_data, language=language)
     return final_response

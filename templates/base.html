@@ -139,105 +139,120 @@
 
             <!-- Navigation -->
             <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-                <p class="px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Overview</p>
-
+                
                 <a href="{% url 'dashboard' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'dashboard' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                     <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                     Dashboard
                 </a>
 
-                <p class="px-3 pt-4 text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Transactions</p>
+                <!-- TRANSACTIONS DROPDOWN -->
+                {% with trans_pages="sales,purchases,scan,analytics,payments,receipts,journal" %}
+                <div class="pt-2">
+                    <button onclick="toggleDropdown('dropdown-transactions')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                            Transactions
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 {% if active_page in trans_pages %}rotate-180{% endif %}" id="icon-dropdown-transactions" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="dropdown-transactions" class="{% if active_page not in trans_pages %}hidden{% endif %} mt-1 space-y-1 pl-11 pr-3">
+                        <a href="{% url 'sales_list' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'sales' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Sales</a>
+                        
+                        {% if user.profile.role.name != 'Billing Clerk' %}
+                        <a href="{% url 'purchases_list' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'purchases' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Purchases</a>
+                        <a href="{% url 'voucher_scan' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'scan' %}font-bold text-indigo-600 bg-indigo-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %} flex items-center justify-between">
+                            AI Invoice Scan
+                            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        </a>
+                        <a href="{% url 'voucher_analytics' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'analytics' %}font-bold text-purple-600 bg-purple-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Financial Intelligence</a>
+                        {% endif %}
 
-                <a href="{% url 'sales_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'sales' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
-                    Sales
-                </a>
+                        <a href="{% url 'payments_list' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'payments' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Payments</a>
+                        <a href="{% url 'receipts_list' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'receipts' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Receipts</a>
+                        <a href="{% url 'journal_list' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'journal' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Journal Entries</a>
+                    </div>
+                </div>
+                {% endwith %}
 
+                <!-- MASTERS DROPDOWN -->
+                {% with master_pages="masters,ledgers,inventory" %}
+                <div class="pt-2">
+                    <button onclick="toggleDropdown('dropdown-masters')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                            Masters
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 {% if active_page in master_pages %}rotate-180{% endif %}" id="icon-dropdown-masters" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="dropdown-masters" class="{% if active_page not in master_pages %}hidden{% endif %} mt-1 space-y-1 pl-11 pr-3">
+                        <a href="{% url 'masters_hub' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'masters' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Create Masters</a>
+                        <a href="{% url 'ledger_list' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'ledgers' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Ledgers</a>
+                        <a href="{% url 'inventory_list' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'inventory' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Stock Items</a>
+                    </div>
+                </div>
+                {% endwith %}
+
+                <!-- ANALYTICS DROPDOWN -->
+                {% with analytics_pages="trial_balance,profit_loss,bank_reconciliation" %}
+                <div class="pt-2">
+                    <button onclick="toggleDropdown('dropdown-analytics')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            Analytics
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 {% if active_page in analytics_pages %}rotate-180{% endif %}" id="icon-dropdown-analytics" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="dropdown-analytics" class="{% if active_page not in analytics_pages %}hidden{% endif %} mt-1 space-y-1 pl-11 pr-3">
+                        <a href="{% url 'reports:trial_balance' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'trial_balance' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Trial Balance</a>
+                        <a href="{% url 'reports:profit_loss' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'profit_loss' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Profit & Loss</a>
+                        <a href="{% url 'reports:bank_reconciliation' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'bank_reconciliation' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">AI Bank Sync</a>
+                    </div>
+                </div>
+                {% endwith %}
+
+                <!-- INTEGRATION DROPDOWN -->
                 {% if user.profile.role.name != 'Billing Clerk' %}
-                <a href="{% url 'purchases_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'purchases' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                    Purchases
-                </a>
-
-                <a href="{% url 'voucher_scan' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'scan' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70 animate-pulse text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                    AI Invoice Scan
-                </a>
-
-                <a href="{% url 'voucher_analytics' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'analytics' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    Financial Intelligence
-                </a>
-
-                <a href="{% url 'payments_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'payments' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    Payments
-                </a>
-
-                <a href="{% url 'receipts_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'receipts' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Receipts
-                </a>
-
-                <a href="{% url 'journal_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'journal' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Journal Entries
-                </a>
-
-                <p class="px-3 pt-4 text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Masters</p>
-
-                <a href="{% url 'masters_hub' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'masters' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                    Create Masters
-                </a>
-
-                <a href="{% url 'ledger_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'ledgers' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    Ledgers
-                </a>
-
-                <a href="{% url 'inventory_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'inventory' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    Stock Items
-                </a>
-
-                <p class="px-3 pt-4 text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Analytics</p>
-
-                <a href="{% url 'reports:trial_balance' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'trial_balance' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                    Trial Balance
-                </a>
-
-                <a href="{% url 'reports:profit_loss' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'profit_loss' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
-                    Profit & Loss
-                </a>
-
-                <p class="px-3 pt-4 text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Integration</p>
-
-                <a href="{% url 'sync-logs' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'sync_logs' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    Sync Logs
-                </a>
+                {% with integration_pages="sync_logs" %}
+                <div class="pt-2">
+                    <button onclick="toggleDropdown('dropdown-integration')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Integration
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 {% if active_page in integration_pages %}rotate-180{% endif %}" id="icon-dropdown-integration" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="dropdown-integration" class="{% if active_page not in integration_pages %}hidden{% endif %} mt-1 space-y-1 pl-11 pr-3">
+                        <a href="{% url 'sync-logs' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'sync_logs' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Sync Logs</a>
+                    </div>
+                </div>
+                {% endwith %}
                 {% endif %}
 
-                <p class="px-3 pt-4 text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">System Control</p>
-
+                <!-- SYSTEM CONTROL DROPDOWN -->
                 {% if user.is_superuser or user.profile.role.name == 'Admin' %}
-                <a href="{% url 'user_management' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'user_management' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                    Manage Users
-                </a>
-                <a href="{% url 'role_management' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'role_management' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    Manage Roles
-                </a>
+                {% with system_pages="user_management,role_management" %}
+                <div class="pt-2">
+                    <button onclick="toggleDropdown('dropdown-system')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            System Control
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 {% if active_page in system_pages %}rotate-180{% endif %}" id="icon-dropdown-system" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="dropdown-system" class="{% if active_page not in system_pages %}hidden{% endif %} mt-1 space-y-1 pl-11 pr-3">
+                        <a href="{% url 'user_management' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'user_management' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Manage Users</a>
+                        <a href="{% url 'role_management' %}" class="block px-3 py-2 rounded-lg text-sm {% if active_page == 'role_management' %}font-bold text-brand-600 bg-brand-50{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-50{% endif %}">Manage Roles</a>
+                    </div>
+                </div>
+                {% endwith %}
                 {% endif %}
 
-                <a href="{% url 'about-project' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'about_project' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    About Project
-                </a>
+                <div class="pt-2">
+                    <a href="{% url 'about-project' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if active_page == 'about_project' %}active{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                        <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        About Project
+                    </a>
+                </div>
             </nav>
 
             <!-- User Section -->
@@ -390,6 +405,18 @@
             const overlay = document.getElementById('mobile-overlay');
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
+        }
+
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                el.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
         }
 
         // Global Toast Notification System

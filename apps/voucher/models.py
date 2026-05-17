@@ -10,7 +10,10 @@ from decimal import Decimal
 from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.conf import settings
 from core.models import TenantModel
+from company.models import Company
+
 
 
 class VoucherType(models.TextChoices):
@@ -73,8 +76,10 @@ class VoucherSequence(models.Model):
     Internal tracker for the next available voucher number.
     Scoped to Company + VoucherType.
     """
+    objects = models.Manager()
     company = models.ForeignKey('company.Company', on_delete=models.CASCADE)
     voucher_type = models.CharField(max_length=20, choices=VoucherType.choices)
+
     last_number = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -157,17 +162,18 @@ class Voucher(TenantModel):
                 raise ValidationError("Cannot modify a posted voucher. Unpost it first if permitted.")
 
         # 1. Financial Year Check
-        if self.date < self.company.financial_year_start or self.date > self.company.financial_year_end:
+        company: Company = self.company  # type: ignore
+        if self.date < company.financial_year_start or self.date > company.financial_year_end:
             raise ValidationError(
                 f"Voucher date {self.date} must be within the financial year "
-                f"({self.company.financial_year_start} to {self.company.financial_year_end})."
+                f"({company.financial_year_start} to {company.financial_year_end})."
             )
 
         # 2. Double-Entry Balance Check
         # A voucher must always be balanced (Dr = Cr) if it is marked as posted.
         if self.is_posted and self.pk:
             from django.db.models import Sum
-            entries = self.entries.all()
+            entries = self.entries.all()  # type: ignore
             if not entries.exists():
                 raise ValidationError("Cannot post an empty voucher. At least two entries are required.")
                 
@@ -179,18 +185,18 @@ class Voucher(TenantModel):
                     f"Accounting Mismatch: Total Debit ({dr_sum}) must equal Total Credit ({cr_sum}) for posted vouchers."
                 )
 
-    def delete(self, *args, **kwargs):
+    def delete(self, using=None, keep_parents=False):
         """Block deletion of posted vouchers."""
         if self.is_posted:
             raise ValidationError("Cannot delete a posted voucher.")
-        super().delete(*args, **kwargs)
+        return super().delete(using=using, keep_parents=keep_parents)
 
     def save(self, *args, **kwargs):
         """
         Handle auto-numbering on first save.
         """
         if not self.number:
-            with transaction.atomic():
+            with transaction.atomic():  # type: ignore
                 seq, _ = VoucherSequence.objects.select_for_update().get_or_create(
                     company=self.company,
                     voucher_type=self.voucher_type
@@ -198,8 +204,8 @@ class Voucher(TenantModel):
                 seq.last_number += 1
                 seq.save()
                 
-                prefix = self.voucher_type[:3].upper()
-                self.number = f"{prefix}-{str(seq.last_number).zfill(4)}"
+                prefix = self.voucher_type[:3].upper()  # type: ignore
+                self.number = f"{prefix}-{str(seq.last_number).zfill(4)}"  # type: ignore
         
         super().save(*args, **kwargs)
 
@@ -285,3 +291,31 @@ class VoucherEntry(TenantModel):
 
     def __str__(self):
         return f"{self.voucher.number} | {self.entry_type} {self.ledger.name} {self.amount}"
+
+
+class AuditRiskResolution(TenantModel):
+    """
+    Stores resolutions/acknowledgements of programmatic audit risk alerts by Managers/Admins.
+    """
+    voucher = models.ForeignKey(
+        'Voucher',
+        on_delete=models.CASCADE,
+        related_name='risk_resolutions'
+    )
+    risk_type = models.CharField(max_length=50) # e.g. 'ANOMALY', 'DUPLICATE', 'COMPLIANCE', 'AUDIT'
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    resolved_at = models.DateTimeField(auto_now_add=True)
+    comments = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = 'Audit Risk Resolution'
+        verbose_name_plural = 'Audit Risk Resolutions'
+        unique_together = ['company', 'voucher', 'risk_type']
+
+    def __str__(self):
+        return f"Resolution for {self.voucher.number} | {self.risk_type}"
