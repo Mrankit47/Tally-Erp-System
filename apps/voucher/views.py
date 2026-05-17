@@ -94,7 +94,8 @@ def voucher_create_view(request, voucher_type):
         'payments': VoucherType.PAYMENT,
         'receipts': VoucherType.RECEIPT,
         'purchase': VoucherType.PURCHASE,
-        'purchases': VoucherType.PURCHASE
+        'purchases': VoucherType.PURCHASE,
+        'journal': VoucherType.JOURNAL
     }
     
     target_type = type_map.get(voucher_type.lower())
@@ -208,6 +209,11 @@ def voucher_create_view(request, voucher_type):
         context['cash_bank'] = Ledger.objects.filter(company=company, group__name__icontains='Bank') | Ledger.objects.filter(company=company, group__name__icontains='Cash')
         context['all_ledgers'] = Ledger.objects.filter(company=company)
         return render(request, 'receipt_voucher_form.html', context)
+
+    if target_type == VoucherType.JOURNAL:
+        # Pass all ledgers for Journal Form
+        context['all_ledgers'] = Ledger.objects.filter(company=company)
+        return render(request, 'journal_voucher_form.html', context)
 
     return render(request, 'voucher_form.html', context)
 from .services.approval_service import approve_voucher
