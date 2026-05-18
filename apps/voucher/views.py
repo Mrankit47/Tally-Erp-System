@@ -569,6 +569,7 @@ def voucher_analytics_api(request):
         return JsonResponse({'error': 'No active company context.'}, status=400)
         
     refresh = request.GET.get('refresh', 'false').lower() == 'true'
-    payload = generate_company_insights_summary(company, force_refresh=refresh)
+    language = request.GET.get('language', 'English')
+    payload = generate_company_insights_summary(company, force_refresh=refresh, language=language)
     return JsonResponse(payload)
 

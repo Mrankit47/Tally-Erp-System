@@ -17,16 +17,16 @@ from .risk_engine import audit_company_vouchers_for_risks
 
 logger = logging.getLogger('apps.ai')
 
-def generate_company_insights_summary(company, force_refresh=False) -> dict:
+def generate_company_insights_summary(company, force_refresh=False, language='English') -> dict:
     """
     Compiles calculated metrics and programmatically flagged risks,
     caches findings for 15 mins, and retrieves Groq AI auditor commentary.
     """
-    cache_key = f"ai_financial_insights_{company.id}"
+    cache_key = f"ai_financial_insights_{company.id}_{language.lower()}"
     cached_insights = cache.get(cache_key)
     
     if cached_insights and not force_refresh:
-        logger.info(f"Retrieved cached insights report for company {company.id}.")
+        logger.info(f"Retrieved cached insights report for company {company.id} in {language}.")
         return cached_insights
 
     try:
@@ -107,7 +107,7 @@ Low-severity warnings count: {len([r for r in risks if r['severity'] == 'LOW'])}
         # 3. Call AI Router for human-readable audit reports via DeepSeek
         logger.debug("Routing insights summary request to AI router for 'finance' task.")
         
-        system_prompt = """You are a highly experienced Senior Chartered Accountant, Corporate Auditor, and ERP Business Intelligence consultant.
+        system_prompt = f"""You are a highly experienced Senior Chartered Accountant, Corporate Auditor, and ERP Business Intelligence consultant.
 Your goal is to inspect the aggregated financial metrics and programmatic risk alerts compiled by the ERP and draft an executive financial dashboard report.
 
 Follow these strict output guidelines:
@@ -120,6 +120,7 @@ Follow these strict output guidelines:
    - **### Strategic Growth Projections & Advisory:** Simple moving-average forecasting recommendations and cost-control actions.
 3. Keep the content dense, precise, and concise. Do not add general filler or intro/outro remarks.
 4. Always reference specific figures from the metrics provided. Do not invent or guess information.
+5. You MUST write the entire response in the {language} language. If {language} is Hindi, translate all section headers and commentary details into clean, elegant, professional corporate Hindi, maintaining financial accuracy.
 """
 
         ai_commentary = ai_router.route_request(
@@ -148,7 +149,7 @@ Follow these strict output guidelines:
 
         # Cache the resulting analytics payload for 15 minutes (900 seconds)
         cache.set(cache_key, payload, 900)
-        logger.info(f"Generated and cached new insights report for company {company.id}.")
+        logger.info(f"Generated and cached new insights report for company {company.id} in {language}.")
         return payload
 
     except Exception as e:
@@ -169,8 +170,12 @@ Follow these strict output guidelines:
         except Exception:
             fallback_metrics = {}
 
+        fallback_msg = "### Executive Financial Summary\nError communicating with AI Router. Real-time statistical metrics continue to function, but AI narrative insights are temporarily unavailable."
+        if language.lower() == 'hindi':
+            fallback_msg = "### Executive Financial Summary\nAI राउटर से संपर्क करने में त्रुटि। वास्तविक समय के सांख्यिकीय मेट्रिक्स काम करना जारी रख रहे हैं, लेकिन AI विश्लेषण वर्तमान में अस्थायी रूप से अनुपलब्ध है।"
+
         return {
             'metrics': fallback_metrics,
-            'ai_insights': "### Executive Financial Summary\nError communicating with AI Router. Real-time statistical metrics continue to function, but AI narrative insights are temporarily unavailable.",
+            'ai_insights': fallback_msg,
             'timestamp': timezone.now().isoformat()
         }

@@ -84,7 +84,7 @@
         <div class="lg:col-span-8 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
             <div>
-                <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 mb-4 gap-3">
                     <div class="flex items-center gap-2">
                         <span class="flex h-2 w-2 relative">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -92,7 +92,18 @@
                         </span>
                         <h3 class="text-sm font-bold text-slate-900 tracking-tight">Executive Intelligence Commentary</h3>
                     </div>
-                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Calculated: <span id="insightsTimestamp">-</span></span>
+                    <div class="flex items-center gap-3">
+                        <!-- Premium Language Toggle -->
+                        <div class="inline-flex p-0.5 rounded-xl bg-slate-100 border border-slate-200">
+                            <button id="langEngBtn" onclick="changeLanguage('English')" class="px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all tracking-wider bg-white text-blue-600 shadow-sm border border-slate-200/50">
+                                English
+                            </button>
+                            <button id="langHinBtn" onclick="changeLanguage('Hindi')" class="px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all tracking-wider text-slate-500 hover:text-slate-800">
+                                Hindi (हिंदी)
+                            </button>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-widest hidden sm:inline">Calculated: <span id="insightsTimestamp">-</span></span>
+                    </div>
                 </div>
                 
                 <!-- AI Markdown container -->
@@ -382,6 +393,41 @@
     let cashflowComboChart = null;
     let approvalsStackedChart = null;
     let gstDonutChart = null;
+    
+    // Multi-Language State tracking
+    let currentLanguage = 'English';
+
+    function changeLanguage(lang) {
+        if (currentLanguage === lang) return;
+        currentLanguage = lang;
+        
+        // Update active UI classes for toggle buttons
+        const engBtn = document.getElementById("langEngBtn");
+        const hinBtn = document.getElementById("langHinBtn");
+        
+        if (lang === 'English') {
+            engBtn.className = "px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all tracking-wider bg-white text-blue-600 shadow-sm border border-slate-200/50";
+            hinBtn.className = "px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all tracking-wider text-slate-500 hover:text-slate-800";
+        } else {
+            hinBtn.className = "px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all tracking-wider bg-white text-blue-600 shadow-sm border border-slate-200/50";
+            engBtn.className = "px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all tracking-wider text-slate-500 hover:text-slate-800";
+        }
+        
+        // Render dynamic shimmer effect in commentary container during fetch
+        const insightsContainer = document.getElementById("insightsContainer");
+        if (insightsContainer) {
+            insightsContainer.innerHTML = `
+                <div class="animate-pulse space-y-3">
+                    <div class="h-3 bg-slate-100 rounded w-1/4"></div>
+                    <div class="h-3 bg-slate-100 rounded w-full"></div>
+                    <div class="h-3 bg-slate-100 rounded w-5/6"></div>
+                    <div class="h-3 bg-slate-100 rounded w-2/3"></div>
+                </div>
+            `;
+        }
+        
+        fetchAnalyticsData(false);
+    }
 
     document.addEventListener("DOMContentLoaded", function() {
         fetchAnalyticsData(false);
@@ -397,8 +443,9 @@
         }
 
         let url = "{% url 'voucher_analytics_api' %}";
+        url += "?language=" + currentLanguage;
         if (forceRefresh) {
-            url += "?refresh=true";
+            url += "&refresh=true";
         }
 
         fetch(url)
