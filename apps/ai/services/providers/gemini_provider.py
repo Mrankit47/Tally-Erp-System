@@ -10,7 +10,7 @@ class GeminiProvider(BaseProvider):
         if not api_key:
             raise AIProviderError("GEMINI_API_KEY is not configured.")
         
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=api_key, transport="rest")
         # List of models to try in order (waterfall fallback)
         self.fallback_models = [
             'gemini-2.0-flash',
@@ -41,8 +41,7 @@ class GeminiProvider(BaseProvider):
                 
                 response = model.generate_content(
                     full_prompt,
-                    generation_config=generation_config,
-                    transport="rest"
+                    generation_config=generation_config
                 )
 
                 if response.prompt_feedback and getattr(response.prompt_feedback, "block_reason", None):
