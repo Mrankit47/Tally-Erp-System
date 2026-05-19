@@ -13,9 +13,10 @@ class GeminiProvider(BaseProvider):
         # List of stable models to try in order (waterfall fallback)
         self.fallback_models = [
             'gemini-2.0-flash',
-            'gemini-2.5-flash',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro'
+            'gemini-flash-latest',
+            'gemini-pro-latest',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro-latest'
         ]
 
     def generate_response(self, system_prompt: str, user_prompt: str, **kwargs) -> str:
