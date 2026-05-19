@@ -1,59 +1,87 @@
 import os
-import google.generativeai as genai
+import requests
 from .base_provider import BaseProvider
 from ..exceptions import AIProviderError
 from ..ai_logger import ai_logger
 
 class GeminiProvider(BaseProvider):
     def __init__(self):
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
+        self.api_key = os.environ.get("GEMINI_API_KEY")
+        if not self.api_key:
             raise AIProviderError("GEMINI_API_KEY is not configured.")
         
-        genai.configure(api_key=api_key, transport="rest")
-        # List of models to try in order (waterfall fallback)
+        # List of stable models to try in order (waterfall fallback)
         self.fallback_models = [
             'gemini-2.0-flash',
             'gemini-2.5-flash',
-            'gemini-flash-latest',
-            'gemini-pro-latest',
-            'gemini-3-flash-preview'
+            'gemini-1.5-flash',
+            'gemini-1.5-pro'
         ]
 
     def generate_response(self, system_prompt: str, user_prompt: str, **kwargs) -> str:
-        # Using simple text merge for robustness with Gemini text APIs
+        # standard text merge for systemic prompting over REST
         full_prompt = f"{system_prompt}\n\nUser Input:\n{user_prompt}"
         
-        # Default to low temperature for deterministic tasks like JSON extraction
         temperature = kwargs.get("temperature", 0.1)
+        max_tokens = kwargs.get("max_tokens", 8000) # Support high output limits safely
         
-        generation_config = genai.types.GenerationConfig(
-            temperature=temperature,
-            max_output_tokens=kwargs.get("max_tokens", 1500)
-        )
-
         last_error = None
 
         for model_name in self.fallback_models:
             try:
-                ai_logger.debug(f"Requesting generation from Gemini ({model_name}).")
-                model = genai.GenerativeModel(model_name)
+                ai_logger.debug(f"Requesting generation from Gemini REST API ({model_name}).")
                 
-                response = model.generate_content(
-                    full_prompt,
-                    generation_config=generation_config
-                )
-
-                if response.prompt_feedback and getattr(response.prompt_feedback, "block_reason", None):
-                    ai_logger.error(f"Gemini {model_name} prompt blocked: {response.prompt_feedback}")
-                    raise AIProviderError(f"Gemini {model_name} blocked the prompt due to safety filters.")
-
-                return response.text.strip()
+                # Official Google Gen AI REST endpoint
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+                
+                headers = {
+                    "Content-Type": "application/json"
+                }
+                
+                payload = {
+                    "contents": [
+                        {
+                            "parts": [
+                                {
+                                    "text": full_prompt
+                                }
+                            ]
+                        }
+                    ],
+                    "generationConfig": {
+                        "temperature": temperature,
+                        "maxOutputTokens": max_tokens
+                    }
+                }
+                
+                # Make standard lightweight HTTP request with a 60 second timeout
+                response = requests.post(url, headers=headers, json=payload, timeout=60)
+                
+                if response.status_code != 200:
+                    raise AIProviderError(f"HTTP Error {response.status_code}: {response.text}")
+                    
+                response_data = response.json()
+                
+                # Safely extract text from official Gemini REST schema
+                candidates = response_data.get("candidates", [])
+                if not candidates:
+                    feedback = response_data.get("promptFeedback", {})
+                    if feedback.get("blockReason"):
+                        raise AIProviderError(f"Prompt blocked due to safety: {feedback}")
+                    raise AIProviderError("No response candidates returned from Gemini REST API.")
+                    
+                content = candidates[0].get("content", {})
+                parts = content.get("parts", [])
+                if not parts:
+                    raise AIProviderError("Empty content parts in Gemini REST response.")
+                    
+                text_response = parts[0].get("text", "")
+                return text_response.strip()
                 
             except Exception as e:
                 last_error = e
-                ai_logger.warning(f"Gemini model {model_name} failed: {e}. Falling back to next model...")
+                ai_logger.warning(f"Gemini REST model {model_name} failed: {e}. Falling back to next model...")
 
         # If we exhausted all models in the fallback chain
-        ai_logger.error(f"All Gemini fallback models failed. Last error: {last_error}", exc_info=True)
-        raise AIProviderError(f"Gemini API Error across all fallback models. Last Error: {str(last_error)}")
+        ai_logger.error(f"All Gemini REST fallback models failed. Last error: {last_error}", exc_info=True)
+        raise AIProviderError(f"Gemini REST API Error across all fallback models. Last Error: {str(last_error)}")
