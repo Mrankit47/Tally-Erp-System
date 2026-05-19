@@ -41,7 +41,8 @@ class GeminiProvider(BaseProvider):
                 
                 response = model.generate_content(
                     full_prompt,
-                    generation_config=generation_config
+                    generation_config=generation_config,
+                    transport="rest"
                 )
 
                 if response.prompt_feedback and getattr(response.prompt_feedback, "block_reason", None):
