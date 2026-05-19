@@ -128,6 +128,74 @@
     </div>
 </div>
 
+<!-- Custom Premium Alert/Notification Modal -->
+<div id="customAlertModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden opacity-0">
+    <div id="customAlertCard" class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden">
+        <!-- Header Section with Icon and Colors -->
+        <div id="alertHeader" class="p-6 flex flex-col items-center text-center relative border-b border-slate-50">
+            <!-- Close Button -->
+            <button onclick="closeAlertModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100/50 rounded-full transition-all cursor-pointer focus:outline-none">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            
+            <!-- Icon Container -->
+            <div id="alertIconContainer" class="w-16 h-16 rounded-full flex items-center justify-center shadow-md border-4 border-white transition-all duration-300">
+                <!-- Icon will be inserted dynamically -->
+            </div>
+            
+            <h3 id="alertTitle" class="text-base font-black tracking-tight mt-4">Alert Title</h3>
+            <span id="alertSubtitle" class="px-2 py-0.5 mt-1.5 text-[8px] font-black uppercase rounded-full tracking-wider border">SUBTITLE</span>
+        </div>
+        
+        <!-- Content Section -->
+        <div class="p-6 space-y-4">
+            <div class="text-center space-y-3">
+                <p id="alertMessage" class="text-xs font-semibold text-slate-500 leading-relaxed">
+                    Message goes here...
+                </p>
+                
+                <!-- Smart Diagnosis Box (Shown only for parsing errors / server crashes) -->
+                <div id="diagnosisBox" class="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 text-left hidden animate-fadeIn">
+                    <div class="flex items-start gap-3">
+                        <span class="text-amber-500 mt-0.5 bg-white p-1 rounded-lg border border-amber-100">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M12 11h.01M12 14h.01M11 12h2m-3 9h4a2 2 0 002-2v-3a2 2 0 00-2-2h-4a2 2 0 00-2 2v3a2 2 0 002 2z"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <h4 class="text-[9px] font-black text-amber-800 uppercase tracking-widest">Live Server Diagnosis</h4>
+                            <p class="text-[10px] font-bold text-amber-700/90 mt-1 leading-normal">
+                                This error occurs because the live server returned an HTML page (like a 500 crash page) instead of JSON.
+                                <br><span class="font-black text-rose-600">Most likely reason:</span> The <code class="font-mono bg-amber-100/50 px-1 py-0.5 rounded text-rose-600 font-bold">GEMINI_API_KEY</code> environment variable is missing or invalid in your Render.com dashboard environment settings.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Technical Details (Shown only if present) -->
+            <div id="technicalDetailsWrapper" class="border border-slate-100 rounded-2xl overflow-hidden bg-slate-50/30 hidden">
+                <button onclick="toggleAlertDetails()" class="w-full p-3.5 flex justify-between items-center text-[9px] font-black text-slate-450 hover:text-slate-600 bg-slate-50/50 transition-all focus:outline-none cursor-pointer">
+                    <span>TECHNICAL ERROR DETAILS</span>
+                    <svg id="detailsArrow" class="w-3.5 h-3.5 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="technicalDetailsContent" class="hidden p-4 border-t border-slate-100 max-h-36 overflow-y-auto font-mono text-[9px] text-slate-550 bg-slate-50 leading-relaxed whitespace-pre-wrap select-text">
+                    <!-- Tech details loaded dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Section -->
+        <div id="alertFooter" class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex gap-2.5">
+            <!-- Dynamic buttons will be inserted here -->
+        </div>
+    </div>
+</div>
+
 <script id="ledgers-data" type="application/json">{{ ledgers_json|safe }}</script>
 
 <script>
@@ -164,9 +232,153 @@
         }
     });
 
+    // Custom Alert Modal controller
+    function showAlert({ type, title, subtitle, message, techDetails, actionBtnText, onAction }) {
+        const modal = document.getElementById("customAlertModal");
+        const card = document.getElementById("customAlertCard");
+        const header = document.getElementById("alertHeader");
+        const iconContainer = document.getElementById("alertIconContainer");
+        const titleEl = document.getElementById("alertTitle");
+        const subtitleEl = document.getElementById("alertSubtitle");
+        const messageEl = document.getElementById("alertMessage");
+        const diagnosisBox = document.getElementById("diagnosisBox");
+        const techWrapper = document.getElementById("technicalDetailsWrapper");
+        const techContent = document.getElementById("technicalDetailsContent");
+        const footer = document.getElementById("alertFooter");
+        const arrow = document.getElementById("detailsArrow");
+
+        // Reset default states
+        techWrapper.classList.add("hidden");
+        techContent.classList.add("hidden");
+        arrow.classList.remove("rotate-180");
+        diagnosisBox.classList.add("hidden");
+
+        // Determine themes and templates based on warning type
+        let headerBg, titleColor, subtitleBg, subtitleBorder, subtitleColor, iconColor, iconHtml, iconBg;
+        
+        if (type === 'success') {
+            headerBg = "bg-gradient-to-br from-emerald-50 to-emerald-100/50";
+            titleColor = "text-emerald-700";
+            subtitleBg = "bg-emerald-55";
+            subtitleBorder = "border-emerald-200";
+            subtitleColor = "text-emerald-800";
+            iconBg = "bg-emerald-500";
+            iconColor = "text-white";
+            iconHtml = `
+                <svg class="w-8 h-8 ${iconColor}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                </svg>
+            `;
+        } else if (type === 'warning') {
+            headerBg = "bg-gradient-to-br from-amber-50 to-amber-100/50";
+            titleColor = "text-amber-700";
+            subtitleBg = "bg-amber-55";
+            subtitleBorder = "border-amber-200";
+            subtitleColor = "text-amber-800";
+            iconBg = "bg-amber-500";
+            iconColor = "text-white";
+            iconHtml = `
+                <svg class="w-8 h-8 ${iconColor}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                </svg>
+            `;
+        } else { // default to error
+            headerBg = "bg-gradient-to-br from-rose-50 to-rose-100/50";
+            titleColor = "text-rose-700";
+            subtitleBg = "bg-rose-55";
+            subtitleBorder = "border-rose-200";
+            subtitleColor = "text-rose-800";
+            iconBg = "bg-rose-500";
+            iconColor = "text-white";
+            iconHtml = `
+                <svg class="w-8 h-8 ${iconColor}" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            `;
+        }
+
+        // Apply visual parameters
+        header.className = `p-6 flex flex-col items-center text-center relative border-b border-slate-100 ${headerBg}`;
+        titleEl.className = `text-lg font-black tracking-tight mt-4 ${titleColor}`;
+        titleEl.innerText = title || (type === 'success' ? 'Success' : 'Operation Failed');
+        
+        subtitleEl.className = `px-2.5 py-0.5 mt-1.5 text-[8px] font-black uppercase rounded-full tracking-wider border ${subtitleBg} ${subtitleBorder} ${subtitleColor}`;
+        subtitleEl.innerText = subtitle || (type === 'success' ? 'Completed' : 'Error');
+
+        iconContainer.className = `w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-4 border-white ${iconBg} ${type === 'error' ? 'animate-bounce' : ''}`;
+        iconContainer.innerHTML = iconHtml;
+
+        messageEl.innerText = message || "";
+
+        // Check if there is an environment variable parsing error to diagnose
+        if (type === 'error' && techDetails && (techDetails.includes('<') || techDetails.toLowerCase().includes('json') || techDetails.toLowerCase().includes('token') || techDetails.toLowerCase().includes('html'))) {
+            diagnosisBox.classList.remove("hidden");
+        }
+
+        // Setup details section
+        if (techDetails) {
+            techWrapper.classList.remove("hidden");
+            techContent.innerText = techDetails;
+        }
+
+        // Construct buttons
+        footer.innerHTML = "";
+        
+        const dismissBtn = document.createElement("button");
+        dismissBtn.className = "w-full py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-150 rounded-xl border border-slate-200 transition-all focus:outline-none cursor-pointer";
+        dismissBtn.innerText = "Dismiss";
+        dismissBtn.onclick = closeAlertModal;
+        footer.appendChild(dismissBtn);
+
+        if (onAction) {
+            const actionBtn = document.createElement("button");
+            actionBtn.className = `w-full py-2.5 text-xs font-bold text-white rounded-xl shadow-md transition-all focus:outline-none cursor-pointer ${type === 'error' ? 'bg-rose-600 hover:bg-rose-700' : type === 'warning' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-brand-600 hover:bg-brand-700'}`;
+            actionBtn.innerText = actionBtnText || "Proceed";
+            actionBtn.onclick = () => {
+                closeAlertModal();
+                onAction();
+            };
+            footer.appendChild(actionBtn);
+        }
+
+        // Display modal
+        modal.classList.remove("hidden");
+        // Trigger layout reflow
+        void modal.offsetHeight;
+        modal.classList.add("active");
+    }
+
+    function closeAlertModal() {
+        const modal = document.getElementById("customAlertModal");
+        modal.classList.remove("active");
+        
+        setTimeout(() => {
+            if (!modal.classList.contains("active")) {
+                modal.classList.add("hidden");
+            }
+        }, 300);
+    }
+
+    function toggleAlertDetails() {
+        const content = document.getElementById("technicalDetailsContent");
+        const arrow = document.getElementById("detailsArrow");
+        if (content.classList.contains("hidden")) {
+            content.classList.remove("hidden");
+            arrow.classList.add("rotate-180");
+        } else {
+            content.classList.add("hidden");
+            arrow.classList.remove("rotate-180");
+        }
+    }
+
     function handleFileSelect(file) {
         if (file.type !== "application/pdf") {
-            alert("Error: Please upload a digital bank statement PDF.");
+            showAlert({
+                type: 'warning',
+                title: 'Invalid File Format',
+                subtitle: 'Validation Warning',
+                message: 'Please upload a digital bank statement PDF. Scanned images or other formats are not supported.'
+            });
             return;
         }
 
@@ -187,10 +399,14 @@
         .then(async response => {
             if (!response.ok) {
                 let errMsg = "AI statement layout parsing failed.";
+                let textContent = "";
                 try {
-                    const errData = await response.json();
+                    textContent = await response.text();
+                    const errData = JSON.parse(textContent);
                     if (errData && errData.error) errMsg = errData.error;
-                } catch(e) {}
+                } catch(e) {
+                    if (textContent) errMsg = textContent;
+                }
                 throw new Error(errMsg);
             }
             return response.json();
@@ -201,13 +417,24 @@
                 extractedTransactions = data.transactions;
                 renderReconciliationTable();
             } else {
-                alert("No transactions found in this statement PDF.");
+                showAlert({
+                    type: 'warning',
+                    title: 'Empty Statement',
+                    subtitle: 'No Data Found',
+                    message: 'We could not detect any transaction rows in this digital PDF. Please check if the statement is blank or a scanned copy.'
+                });
                 resetReconciliation();
             }
         })
         .catch(err => {
             console.error(err);
-            alert("Error parsing bank statement PDF: " + err.message);
+            showAlert({
+                type: 'error',
+                title: 'Parsing Failed',
+                subtitle: 'Server Error',
+                message: 'Gemini AI was unable to parse this bank statement layout.',
+                techDetails: err.message
+            });
             resetReconciliation();
         });
     }
@@ -309,7 +536,12 @@
     function postReconciledTransactions() {
         const bankLedgerId = document.getElementById("bankLedgerSelect").value;
         if (!bankLedgerId) {
-            alert("Error: Please select the local Bank Account Ledger to sync against.");
+            showAlert({
+                type: 'warning',
+                title: 'Bank Ledger Required',
+                subtitle: 'Input Required',
+                message: 'Please select a local Bank Account Ledger from the dropdown to sync these transactions against.'
+            });
             return;
         }
 
@@ -322,7 +554,12 @@
         });
 
         if (transactionsToPost.length === 0) {
-            alert("Please select at least one transaction row to post.");
+            showAlert({
+                type: 'warning',
+                title: 'No Selection',
+                subtitle: 'Validation Error',
+                message: 'Please select at least one transaction row from the checkbox list to post to your ledgers.'
+            });
             return;
         }
 
@@ -347,23 +584,54 @@
                 transactions: transactionsToPost
             })
         })
-        .then(response => {
-            if (!response.ok) throw new Error("Failed to post reconciliation vouchers.");
+        .then(async response => {
+            if (!response.ok) {
+                let errMsg = "Failed to post reconciliation vouchers.";
+                let textContent = "";
+                try {
+                    textContent = await response.text();
+                    const errData = JSON.parse(textContent);
+                    if (errData && errData.error) errMsg = errData.error;
+                } catch(e) {
+                    if (textContent) errMsg = textContent;
+                }
+                throw new Error(errMsg);
+            }
             return response.json();
         })
         .then(data => {
             if (data.status === "success") {
-                alert("Success: " + data.message);
-                window.location.href = "{% url 'payments_list' %}"; // Redirect to Voucher List page to review posted items!
+                showAlert({
+                    type: 'success',
+                    title: 'Sync Complete',
+                    subtitle: 'Post Success',
+                    message: data.message,
+                    actionBtnText: 'Review Posted Vouchers',
+                    onAction: () => {
+                        window.location.href = "{% url 'payments_list' %}";
+                    }
+                });
             } else {
-                alert("Error: " + data.error);
+                showAlert({
+                    type: 'error',
+                    title: 'Posting Failed',
+                    subtitle: 'Database Error',
+                    message: 'The server was unable to save these vouchers. Please check the logs.',
+                    techDetails: data.error
+                });
                 postBtn.disabled = false;
                 postBtn.innerHTML = `Bulk Import & Post to Tally ERP`;
             }
         })
         .catch(err => {
             console.error(err);
-            alert("Error posting transactions: " + err.message);
+            showAlert({
+                type: 'error',
+                title: 'Posting Interrupted',
+                subtitle: 'Network Error',
+                message: 'A connection issue occurred while syncing transactions with Tally ERP.',
+                techDetails: err.message
+            });
             postBtn.disabled = false;
             postBtn.innerHTML = `Bulk Import & Post to Tally ERP`;
         });
@@ -371,6 +639,27 @@
 </script>
 
 <style>
+    /* Custom Alert Modal animations and transitions */
+    #customAlertModal {
+        transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+        visibility: hidden;
+        pointer-events: none;
+    }
+    #customAlertModal.active {
+        visibility: visible;
+        pointer-events: auto;
+        opacity: 1;
+    }
+    #customAlertCard {
+        transform: scale(0.92);
+        opacity: 0;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+    }
+    #customAlertModal.active #customAlertCard {
+        transform: scale(1);
+        opacity: 1;
+    }
+
     /* Premium micro-animations */
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(8px); }
