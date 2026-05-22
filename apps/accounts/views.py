@@ -153,3 +153,56 @@ def create_user_dashboard_view(request):
             messages.success(request, f"User {username} created successfully.")
             
     return redirect('user_management')
+
+from django.contrib.auth import update_session_auth_hash
+
+@login_required
+def edit_profile_view(request):
+    """View to edit the logged-in user's profile details and change password."""
+    # Retrieve fresh database record to ensure changes are written directly to database
+    user = User.objects.get(id=request.user.id)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'update_profile':
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            email = request.POST.get('email', '').strip()
+            phone = request.POST.get('phone', '').strip()
+            
+            if not email:
+                messages.error(request, "Email address is required.")
+            elif User.objects.exclude(id=user.id).filter(email=email).exists():
+                messages.error(request, "A user with this email address already exists.")
+            else:
+                user.first_name = first_name
+                user.last_name = last_name
+                user.email = email
+                user.phone = phone
+                user.save()
+                messages.success(request, "Profile updated successfully.")
+                return redirect('edit_profile')
+                
+        elif action == 'change_password':
+            current_password = request.POST.get('current_password', '')
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+            
+            if not current_password or not new_password or not confirm_password:
+                messages.error(request, "All password fields are required.")
+            elif not user.check_password(current_password):
+                messages.error(request, "Incorrect current password.")
+            elif new_password != confirm_password:
+                messages.error(request, "New passwords do not match.")
+            elif len(new_password) < 8:
+                messages.error(request, "Password must be at least 8 characters long.")
+            else:
+                user.set_password(new_password)
+                user.save()
+                update_session_auth_hash(request, user)  # Keep the user logged in
+                messages.success(request, "Password updated successfully.")
+                return redirect('edit_profile')
+                
+    return render(request, 'accounts/edit_profile.html')
+

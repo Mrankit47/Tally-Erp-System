@@ -281,6 +281,12 @@
                             <span>{% if user.phone %}{{ user.phone }}{% else %}No phone provided{% endif %}</span>
                         </div>
                     </div>
+                    <div class="mt-3 pt-2.5 border-t border-gray-100 flex justify-end">
+                        <a href="{% url 'edit_profile' %}" class="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 hover:text-brand-700 transition-all">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            Edit Profile
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Logout Form -->
@@ -596,6 +602,25 @@
             });
         }
     </script>
+
+    {% if messages %}
+    <ul id="django-messages" class="hidden" aria-hidden="true">
+        {% for message in messages %}
+            <li data-message="{{ message|escapejs }}" data-tags="{% if message.tags == 'error' %}error{% else %}success{% endif %}"></li>
+        {% endfor %}
+    </ul>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const items = document.querySelectorAll('#django-messages li');
+            items.forEach(function(item) {
+                const message = item.getAttribute('data-message');
+                const tags = item.getAttribute('data-tags');
+                showToast(message, tags);
+            });
+        });
+    </script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
     
     <!-- AI Chatbot Widget -->
