@@ -12,7 +12,8 @@ from .views import (
     user_management_view, 
     role_management_view, 
     update_user_role,
-    create_user_dashboard_view
+    create_user_dashboard_view,
+    edit_profile_view
 )
 
 router = DefaultRouter()
@@ -27,4 +28,5 @@ urlpatterns = [
     path('manage/roles/', role_management_view, name='role_management'),
     path('manage/users/update-role/', update_user_role, name='update_user_role'),
     path('manage/users/create/', create_user_dashboard_view, name='create_user_dashboard'),
+    path('profile/edit/', edit_profile_view, name='edit_profile'),
 ]
