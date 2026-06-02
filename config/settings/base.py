@@ -151,14 +151,21 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # =============================================================================
-# DATABASE — PostgreSQL (Supabase compatible)
+# DATABASE — PostgreSQL (Supabase compatible), SQLite fallback
 # =============================================================================
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.environ.get("DATABASE_URL")
-    )
-}
+_database_url = os.environ.get("DATABASE_URL")
+if _database_url:
+    DATABASES = {
+        "default": dj_database_url.config(default=_database_url)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # =============================================================================
 # PASSWORD VALIDATION
@@ -267,33 +274,25 @@ LOGGING = {
             'formatter': 'simple',
         },
         'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.FileHandler',
             'filename': str(LOG_DIR / 'erp.log'),
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
-            'backupCount': 5,
             'formatter': 'verbose',
         },
         'security_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.FileHandler',
             'filename': str(LOG_DIR / 'security.log'),
-            'maxBytes': 5 * 1024 * 1024,
-            'backupCount': 5,
             'formatter': 'verbose',
             'level': 'WARNING',
         },
         'error_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.FileHandler',
             'filename': str(LOG_DIR / 'error.log'),
-            'maxBytes': 5 * 1024 * 1024,
-            'backupCount': 5,
             'formatter': 'verbose',
             'level': 'ERROR',
         },
         'ai_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.FileHandler',
             'filename': str(LOG_DIR / 'ai.log'),
-            'maxBytes': 5 * 1024 * 1024,
-            'backupCount': 5,
             'formatter': 'verbose',
         },
     },
@@ -338,9 +337,4 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'landing'
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-import dj_database_url
 
-DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get("DATABASE_URL"))
-}
