@@ -112,8 +112,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.ErrorHandlingMiddleware',  # Custom global error handler
     'core.middleware.ActiveCompanyMiddleware',
-    'core.middleware.ErrorHandlingMiddleware',  # Custom global error handler — last
 ]
 
 # =============================================================================
@@ -157,7 +157,11 @@ ASGI_APPLICATION = 'config.asgi.application'
 _database_url = os.environ.get("DATABASE_URL")
 if _database_url:
     DATABASES = {
-        "default": dj_database_url.config(default=_database_url)
+        "default": dj_database_url.config(
+            default=_database_url,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
     DATABASES = {

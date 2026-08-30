@@ -1,9 +1,5 @@
 """
-Global error handling middleware.
-
-Catches unhandled exceptions in the request/response cycle,
-logs the full traceback, and returns a consistent JSON error response.
-This prevents raw 500 pages from leaking implementation details.
+Global error handling middleware and active company middleware.
 """
 
 import logging
@@ -61,33 +57,41 @@ class ErrorHandlingMiddleware:
 
         return JsonResponse(response_data, status=500)
 
+
 class ActiveCompanyMiddleware:
     """
     Middleware to attach the active company to the request object.
     Uses the 'active_company_id' stored in the session.
     If no company is active in session, automatically falls back to the first available company in the DB.
     """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         from django.core.exceptions import ObjectDoesNotExist
         from company.models import Company
+
         active_company_id = request.session.get('active_company_id')
         request.active_company = None
-        if active_company_id:
-            try:
-                request.active_company = Company.objects.get(id=active_company_id)
-            except ObjectDoesNotExist:
-                pass
-        
-        # Safe production fallback: If no active company is in session, fall back to the first available company in the DB.
-        if not request.active_company:
-            first_company = Company.objects.first()
 
-            if first_company:
-                request.active_company = first_company
-                request.session['active_company_id'] = str(first_company.id)
-        
+        try:
+            if active_company_id:
+                try:
+                    request.active_company = Company.objects.get(id=active_company_id)
+                except ObjectDoesNotExist:
+                    pass
+
+            # Safe production fallback: If no active company is in session, fall back to the first available company in the DB.
+            if not request.active_company:
+                first_company = Company.objects.first()
+
+                if first_company:
+                    request.active_company = first_company
+                    request.session['active_company_id'] = str(first_company.id)
+        except Exception as exc:
+            logger.warning("ActiveCompanyMiddleware: Could not determine active company (DB connection issue or empty): %s", exc)
+            request.active_company = None
+
         response = self.get_response(request)
         return response
